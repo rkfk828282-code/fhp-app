@@ -34,11 +34,14 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 
 /* 찍은 사진 칸 */
 .shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.shot .screen { aspect-ratio: auto; min-height: 120px; }
+/* 두 사진 칸은 높이를 똑같이 맞추고, 사진은 그 안 가운데에 비율 그대로 */
+.pair.shots { --shot-h: clamp(300px, 60vh, 640px); }
+.shot .screen { aspect-ratio: auto; height: var(--shot-h); }
 .photo-box { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; }
-.photo-box img { display: block; max-width: 100%; max-height: 62vh; }
+.photo-box img { display: block; max-width: 100%; max-height: var(--shot-h); }
 .photo-box svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-.guide-text { color: #fff; font-size: 14px; text-align: center; padding: 10px 12px 0; min-height: 22px; }
+.guide-text { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2; pointer-events: none;
+  color: #fff; font-size: 13.5px; background: #000b; border-radius: 999px; padding: 6px 14px; white-space: nowrap; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; }
 .shot-empty { color: #9fb0a8; font-size: 14px; text-align: center; padding: 28px 16px; }
 .result { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: center; }
 .result .num { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -95,9 +98,10 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 
   <!-- 찍은 사진 두 개 -->
   <h2 class="section-title">찍은 사진</h2>
-  <div class="pair">
+  <div class="pair shots">
     <section class="shot" aria-label="옆모습 사진">
-      <div class="screen" style="flex-direction:column">
+      <div class="cam-head"><h2><span class="view-tag">옆모습</span>휴대폰 사진</h2><span class="small muted" id="sideTime"></span></div>
+      <div class="screen">
         <div class="guide-text" id="guideText" hidden></div>
         <div class="photo-box" id="sideShot" hidden>
           <img id="sidePhoto" alt="찍은 옆모습 사진">
@@ -124,6 +128,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
     </section>
 
     <section class="shot" aria-label="정면 사진">
+      <div class="cam-head"><h2><span class="view-tag">정면</span>웹캠 사진</h2><span class="small muted" id="frontTime"></span></div>
       <div class="screen">
         <div class="photo-box" id="frontShot" hidden>
           <img id="frontPhoto" alt="찍은 정면 사진">
@@ -157,6 +162,7 @@ const THRESHOLD = 50;
 const LEVEL_TOLERANCE = 2;
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
 const $ = (id) => document.getElementById(id);
+const clock = () => new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
 
 /* ===== 연결 코드 (새로고침해도 유지) ===== */
@@ -262,10 +268,11 @@ function shootSide() {
     $("sideEmpty").hidden = true; $("sideShot").hidden = false; $("guideText").hidden = false; $("resultCard").hidden = false;
     $("captureTilt").textContent = tiltAtCapture ? `찍을 때 휴대폰 기울기: 좌우 ${tiltAtCapture.roll.toFixed(1)}° · 앞뒤 ${tiltAtCapture.pitch.toFixed(1)}°` : "찍을 때 기울기 정보 없음";
     renderMeasure();
-    $("sideShot").scrollIntoView({ behavior: "smooth", block: "center" });
+    document.querySelector(".pair.shots").scrollIntoView({ behavior: "smooth", block: "start" });
   };
   $("sidePhoto").src = g.url;
   $("sideSave").href = g.url; $("sideSave").download = `옆모습-${stamp()}.jpg`;
+  $("sideTime").textContent = clock() + " 촬영";
 }
 $("sideShoot").addEventListener("click", shootSide);
 $("sideRetake").addEventListener("click", shootSide);
@@ -280,6 +287,7 @@ function shootFront() {
   $("frontPhoto").onload = () => { renderFrontGrid(); };
   $("frontPhoto").src = g.url; $("frontShot").hidden = false; $("frontEmpty").hidden = true; $("frontCard").hidden = false;
   $("frontSave").href = g.url; $("frontSave").download = `정면-${stamp()}.jpg`;
+  $("frontTime").textContent = clock() + " 촬영";
 }
 $("frontShoot").addEventListener("click", shootFront);
 $("frontRetake").addEventListener("click", shootFront);
