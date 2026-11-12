@@ -4,35 +4,45 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>거북목 체크 · 노트북 화면</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preload" href="/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
-.app { max-width: 1180px; margin: 0 auto; padding: 18px 20px 32px; display: flex; flex-direction: column; gap: 16px; }
+.app { max-width: 1320px; margin: 0 auto; padding: 18px 20px 32px; display: flex; flex-direction: column; gap: 16px; }
 header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
-@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-.side { display: flex; flex-direction: column; gap: 14px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
 
-.stage-wrap { background: var(--stage); border-radius: 14px; padding: 12px; min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; position: relative; }
-.stage { position: relative; width: fit-content; max-width: 100%; }
-.stage video, .stage img { display: block; max-width: 100%; max-height: 78vh; border-radius: 6px; background: #000; }
+/* 카메라 칸 */
+.cam { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cam-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cam-head h2 { font-size: 16px; }
+.cam-head .view-tag { font-size: 12px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 2px 8px; border-radius: 6px; margin-right: 6px; }
+.screen { background: var(--stage); border-radius: 14px; aspect-ratio: 4 / 3; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.screen video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.screen video.mirror { transform: scaleX(-1); }
 .guides { position: absolute; inset: 0; pointer-events: none; }
 .guides .v { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #ffffff99; }
 .guides .h { position: absolute; left: 0; right: 0; height: 1px; background: #ffffff55; }
-.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-.stage-top { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 2; }
-.waiting { color: #c9d3d8; text-align: center; font-size: 15px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
-.guide-text { color: #fff; font-size: 14px; min-height: 22px; text-align: center; }
+.level-box { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2; }
+.placeholder { color: #c9d3d8; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px; font-size: 14px; }
+.placeholder strong { color: #fff; font-size: 15px; }
+.code { font-size: 40px; font-weight: 800; letter-spacing: 0.12em; color: #fff; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.qr svg { width: 132px; height: 132px; background: #fff; padding: 6px; border-radius: 10px; }
+.url { font-size: 12px; word-break: break-all; color: #9fb0a8; }
+.shoot { width: 100%; }
 
-.code { font-size: 44px; font-weight: 800; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; text-align: center; }
-.qr { display: flex; justify-content: center; }
-.qr img, .qr svg { width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 10px; }
-.url { font-size: 12.5px; word-break: break-all; text-align: center; color: var(--muted); }
-.steps { margin: 0; padding-left: 20px; font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; }
-
+/* 찍은 사진 칸 */
+.shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.shot .screen { aspect-ratio: auto; min-height: 120px; }
+.photo-box { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; }
+.photo-box img { display: block; max-width: 100%; max-height: 62vh; }
+.photo-box svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.guide-text { color: #fff; font-size: 14px; text-align: center; padding: 10px 12px 0; min-height: 22px; }
+.shot-empty { color: #9fb0a8; font-size: 14px; text-align: center; padding: 28px 16px; }
 .result { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: center; }
-.result .num { font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.result .num { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.section-title { font-size: 16px; font-weight: 800; margin: 6px 0 0; }
 </style>
 </head>
 <body>
@@ -42,45 +52,59 @@ header { display: flex; justify-content: space-between; align-items: center; gap
     <span class="status" id="status"><i></i><span id="statusText">서버 연결 중</span></span>
   </header>
 
-  <div class="grid">
-    <!-- 왼쪽: 폰 카메라 실시간 화면 / 찍은 사진 -->
-    <div class="stage-wrap" id="stageWrap">
-      <div class="stage-top" id="levelBox" hidden><div class="level" id="level">수평 확인 중</div></div>
-      <div class="guide-text" id="guideText" hidden></div>
-      <div class="waiting" id="waiting">
-        <strong>휴대폰 카메라를 기다리는 중</strong>
-        <span class="small">오른쪽 QR을 휴대폰 카메라로 비추거나, 연결 코드를 입력해 주세요.</span>
+  <!-- 실시간 화면 두 개 -->
+  <div class="pair">
+    <section class="cam" aria-labelledby="sideTitle">
+      <div class="cam-head">
+        <h2 id="sideTitle"><span class="view-tag">옆모습</span>휴대폰 카메라</h2>
+        <span class="small muted" id="sideState">연결 대기</span>
       </div>
-      <div class="stage" id="liveStage" hidden>
-        <video id="video" autoplay playsinline muted></video>
-        <div class="guides"><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
+      <div class="screen" id="sideScreen">
+        <div class="level-box" id="levelBox" hidden><div class="level" id="level">수평 확인 중</div></div>
+        <div class="placeholder" id="sideWaiting">
+          <strong>휴대폰에서 이 코드를 입력하세요</strong>
+          <div class="code" id="code">------</div>
+          <div class="qr" id="qr"></div>
+          <div class="url" id="phoneUrl"></div>
+          <span class="small">앱: 측정 → 노트북 보면서 촬영 · 같은 와이파이에서</span>
+        </div>
+        <video id="sideVideo" autoplay playsinline muted hidden></video>
+        <div class="guides" id="sideGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
       </div>
-      <div class="stage" id="photoStage" hidden>
-        <img id="photo" alt="찍은 옆모습 사진">
-        <svg id="overlay" aria-label="측정점 표시 영역"></svg>
-      </div>
-    </div>
+      <button class="btn primary big shoot" id="sideShoot" type="button" aria-label="옆모습 촬영" title="옆모습 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    </section>
 
-    <!-- 오른쪽 -->
-    <div class="side">
-      <div class="card" id="connectCard">
-        <h2>휴대폰 연결</h2>
-        <div class="code" id="code">------</div>
-        <div class="qr" id="qr"></div>
-        <div class="url" id="phoneUrl"></div>
-        <ol class="steps">
-          <li>휴대폰과 노트북을 같은 와이파이에 연결</li>
-          <li>휴대폰으로 QR 스캔 (또는 주소 열고 코드 입력)</li>
-          <li>휴대폰에서 <b>카메라 켜고 연결</b> 누르기</li>
-        </ol>
+    <section class="cam" aria-labelledby="frontTitle">
+      <div class="cam-head">
+        <h2 id="frontTitle"><span class="view-tag">정면</span>노트북 웹캠</h2>
+        <span class="small muted" id="frontState">꺼짐</span>
       </div>
-
-      <div class="card" id="liveCard" hidden>
-        <h2>실시간 화면</h2>
-        <p class="small muted" style="margin:0">휴대폰을 몸 옆에 세우고, 가운데 세로선에 몸 옆선을 맞춰 주세요. 위쪽 표시가 초록색일 때 찍으면 오차가 줄어요.</p>
-        <button class="btn primary big" id="captureBtn" type="button">지금 찍기</button>
+      <div class="screen" id="frontScreen">
+        <div class="placeholder" id="frontWaiting">
+          <strong>노트북 웹캠으로 정면을 함께 찍어요</strong>
+          <span>웹캠 앞에 앉아 화면 가운데 세로선에 얼굴과 몸 중앙을 맞춰요.</span>
+          <button class="btn primary" id="frontOn" type="button">웹캠 켜기</button>
+          <span class="small" id="frontErr"></span>
+        </div>
+        <video id="frontVideo" class="mirror" autoplay playsinline muted hidden></video>
+        <div class="guides" id="frontGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
       </div>
+      <button class="btn primary big shoot" id="frontShoot" type="button" aria-label="정면 촬영" title="정면 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    </section>
+  </div>
 
+  <!-- 찍은 사진 두 개 -->
+  <h2 class="section-title">찍은 사진</h2>
+  <div class="pair">
+    <section class="shot" aria-label="옆모습 사진">
+      <div class="screen" style="flex-direction:column">
+        <div class="guide-text" id="guideText" hidden></div>
+        <div class="photo-box" id="sideShot" hidden>
+          <img id="sidePhoto" alt="찍은 옆모습 사진">
+          <svg id="overlay" aria-label="측정점 표시 영역"></svg>
+        </div>
+        <div class="shot-empty" id="sideEmpty">왼쪽 카메라 버튼을 누르면 여기에 사진이 멈춰서 나오고, 귀와 C7을 클릭해 CVA를 재요.</div>
+      </div>
       <div class="card" id="resultCard" hidden>
         <div class="result">
           <div class="num" id="cvaNum">--.-°</div>
@@ -92,12 +116,24 @@ header { display: flex; justify-content: space-between; align-items: center; gap
         <div class="small muted" id="captureTilt"></div>
         <div class="row">
           <button class="btn" id="resetPts" type="button">점 다시 찍기</button>
-          <button class="btn primary" id="backLive" type="button" style="flex:1">실시간 화면으로</button>
+          <a class="btn" id="sideSave" download="옆모습.jpg">사진 저장</a>
         </div>
       </div>
-      <p class="notice">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>
-    </div>
+    </section>
+
+    <section class="shot" aria-label="정면 사진">
+      <div class="screen">
+        <img id="frontPhoto" alt="찍은 정면 사진" hidden style="display:block;max-width:100%;max-height:62vh">
+        <div class="shot-empty" id="frontEmpty">오른쪽 카메라 버튼을 누르면 여기에 사진이 나와요.</div>
+      </div>
+      <div class="card" id="frontCard" hidden>
+        <div class="small muted">저장되는 사진은 좌우가 실제 방향이에요. (화면 미리보기는 거울처럼 보여요)</div>
+        <div class="row"><a class="btn" id="frontSave" download="정면.jpg">사진 저장</a></div>
+      </div>
+    </section>
   </div>
+
+  <p class="notice">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>
 </div>
 
 <script>
@@ -112,6 +148,7 @@ const THRESHOLD = 50;
 const LEVEL_TOLERANCE = 2;
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
 const $ = (id) => document.getElementById(id);
+const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
 
 /* ===== 연결 코드 (새로고침해도 유지) ===== */
 let code;
@@ -122,9 +159,8 @@ const phoneUrl = `${location.origin}/phone.html#${code}`;
 $("phoneUrl").textContent = phoneUrl;
 if (window.qrcode) { const q = qrcode(0, "M"); q.addData(phoneUrl); q.make(); $("qr").innerHTML = q.createSvgTag({ cellSize: 4, margin: 2 }); }
 
-/* ===== 서버 연결 + 영상 받기 ===== */
+/* ===== ① 휴대폰 카메라 (옆모습) — 서버로 연결 코드 맞추고 영상 받기 ===== */
 let ws = null, pc = null, lastTilt = null;
-
 function setStatus(text, on) { $("statusText").textContent = text; $("status").dataset.on = on ? "1" : "0"; }
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 
@@ -133,21 +169,18 @@ function connect() {
   ws = new WebSocket(`${proto}://${location.host}/ws/${code}?role=viewer`);
   ws.onopen = () => setStatus("휴대폰 기다리는 중", false);
   ws.onmessage = (e) => handle(JSON.parse(e.data));
-  ws.onclose = (e) => {
-    setStatus("서버 연결 끊김 · 다시 연결 중", false);
-    if (e.code !== 4000) setTimeout(connect, 2000);
-  };
+  ws.onclose = (e) => { setStatus("서버 연결 끊김 · 다시 연결 중", false); if (e.code !== 4000) setTimeout(connect, 2000); };
 }
 
 async function handle(msg) {
   switch (msg.type) {
-    case "peer-joined": setStatus("휴대폰 연결 중", false); break;
-    case "peer-left": closePeer(); showWaiting(); setStatus("휴대폰 연결 끊김", false); break;
+    case "peer-joined": setStatus("휴대폰 연결 중", false); $("sideState").textContent = "연결 중"; break;
+    case "peer-left": closePeer(); showSideWaiting(); setStatus("휴대폰 연결 끊김", false); break;
     case "offer": {
       closePeer();
       pc = new RTCPeerConnection({ iceServers: ICE });
       pc.onicecandidate = (e) => e.candidate && send({ type: "ice", candidate: e.candidate });
-      pc.ontrack = (e) => { $("video").srcObject = e.streams[0]; showLive(); };
+      pc.ontrack = (e) => { $("sideVideo").srcObject = e.streams[0]; showSideLive(); };
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") setStatus("휴대폰과 연결됨", true);
         if (pc.connectionState === "failed") setStatus("영상 연결 실패 · 같은 와이파이인지 확인해 주세요", false);
@@ -164,49 +197,77 @@ async function handle(msg) {
 }
 function closePeer() { if (pc) { pc.close(); pc = null; } }
 
-/* ===== 화면 상태 ===== */
-let mode = "waiting"; // waiting | live | photo
-function showWaiting() {
-  mode = "waiting";
-  $("waiting").hidden = false; $("liveStage").hidden = true; $("photoStage").hidden = true;
-  $("levelBox").hidden = true; $("guideText").hidden = true;
-  $("connectCard").hidden = false; $("liveCard").hidden = true; $("resultCard").hidden = true;
+function showSideWaiting() {
+  $("sideWaiting").hidden = false; $("sideVideo").hidden = true; $("sideGuides").hidden = true; $("levelBox").hidden = true;
+  $("sideShoot").disabled = true; $("sideState").textContent = "연결 대기";
 }
-function showLive() {
-  mode = "live";
-  $("waiting").hidden = true; $("liveStage").hidden = false; $("photoStage").hidden = true;
-  $("levelBox").hidden = !lastTilt; $("guideText").hidden = true;
-  $("connectCard").hidden = true; $("liveCard").hidden = false; $("resultCard").hidden = true;
+function showSideLive() {
+  $("sideWaiting").hidden = true; $("sideVideo").hidden = false; $("sideGuides").hidden = false; $("levelBox").hidden = !lastTilt;
+  $("sideShoot").disabled = false; $("sideState").textContent = "실시간";
 }
 function renderLevel() {
   if (!lastTilt) return;
   const ok = Math.abs(lastTilt.roll) <= LEVEL_TOLERANCE && Math.abs(lastTilt.pitch) <= LEVEL_TOLERANCE;
   $("level").dataset.ok = ok ? "1" : "0";
   $("level").innerHTML = `${ok ? "수평 OK" : "휴대폰을 똑바로 세워 주세요"}<small>좌우 ${lastTilt.roll.toFixed(1)}° · 앞뒤 ${lastTilt.pitch.toFixed(1)}°</small>`;
-  if (mode === "live") $("levelBox").hidden = false;
+  if (!$("sideVideo").hidden) $("levelBox").hidden = false;
 }
 
-/* ===== 찍기: 지금 영상 한 장면을 사진으로 ===== */
-let photo = null, pts = { tragus: null, c7: null }, tiltAtCapture = null;
-$("captureBtn").addEventListener("click", () => {
-  const v = $("video");
-  if (!v.videoWidth) return;
-  const c = document.createElement("canvas");
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext("2d").drawImage(v, 0, 0);
-  tiltAtCapture = lastTilt ? { ...lastTilt } : null;
-  photo = { w: c.width, h: c.height };
-  pts = { tragus: null, c7: null };
-  $("photo").onload = () => {
-    mode = "photo";
-    $("liveStage").hidden = true; $("photoStage").hidden = false; $("levelBox").hidden = true; $("guideText").hidden = false;
-    $("liveCard").hidden = true; $("resultCard").hidden = false;
-    $("captureTilt").textContent = tiltAtCapture ? `찍을 때 기울기: 좌우 ${tiltAtCapture.roll.toFixed(1)}° · 앞뒤 ${tiltAtCapture.pitch.toFixed(1)}°` : "찍을 때 기울기 정보 없음";
-    renderMeasure();
-  };
-  $("photo").src = c.toDataURL("image/jpeg", 0.92);
+/* ===== ② 노트북 웹캠 (정면) ===== */
+let frontStream = null;
+$("frontOn").addEventListener("click", async () => {
+  $("frontErr").textContent = "";
+  try {
+    frontStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+  } catch {
+    $("frontErr").textContent = "웹캠을 켤 수 없어요. 주소창 왼쪽 자물쇠 → 카메라 허용 후 다시 눌러 주세요.";
+    return;
+  }
+  $("frontVideo").srcObject = frontStream;
+  $("frontWaiting").hidden = true; $("frontVideo").hidden = false; $("frontGuides").hidden = false;
+  $("frontShoot").disabled = false; $("frontState").textContent = "실시간";
+  frontStream.getVideoTracks()[0].addEventListener("ended", () => {
+    $("frontWaiting").hidden = false; $("frontVideo").hidden = true; $("frontGuides").hidden = true;
+    $("frontShoot").disabled = true; $("frontState").textContent = "꺼짐";
+  });
 });
-$("backLive").addEventListener("click", () => { if ($("video").srcObject) showLive(); else showWaiting(); });
+
+/* 영상 한 장면을 사진으로 (좌우 반전 없이 실제 방향) */
+function grab(video) {
+  const c = document.createElement("canvas");
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext("2d").drawImage(video, 0, 0);
+  return { url: c.toDataURL("image/jpeg", 0.92), w: c.width, h: c.height };
+}
+
+/* ===== 옆모습 촬영 → 점 찍어 CVA ===== */
+let photo = null, pts = { tragus: null, c7: null }, tiltAtCapture = null;
+$("sideShoot").addEventListener("click", () => {
+  const v = $("sideVideo");
+  if (!v.videoWidth) return;
+  const g = grab(v);
+  tiltAtCapture = lastTilt ? { ...lastTilt } : null;
+  photo = { w: g.w, h: g.h };
+  pts = { tragus: null, c7: null };
+  $("sidePhoto").onload = () => {
+    $("sideEmpty").hidden = true; $("sideShot").hidden = false; $("guideText").hidden = false; $("resultCard").hidden = false;
+    $("captureTilt").textContent = tiltAtCapture ? `찍을 때 휴대폰 기울기: 좌우 ${tiltAtCapture.roll.toFixed(1)}° · 앞뒤 ${tiltAtCapture.pitch.toFixed(1)}°` : "찍을 때 기울기 정보 없음";
+    renderMeasure();
+    $("sideShot").scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  $("sidePhoto").src = g.url;
+  $("sideSave").href = g.url; $("sideSave").download = `옆모습-${stamp()}.jpg`;
+});
+
+/* ===== 정면 촬영 ===== */
+$("frontShoot").addEventListener("click", () => {
+  const v = $("frontVideo");
+  if (!v.videoWidth) return;
+  const g = grab(v);
+  $("frontPhoto").src = g.url; $("frontPhoto").hidden = false; $("frontEmpty").hidden = true; $("frontCard").hidden = false;
+  $("frontSave").href = g.url; $("frontSave").download = `정면-${stamp()}.jpg`;
+});
+
 $("resetPts").addEventListener("click", () => { pts = { tragus: null, c7: null }; renderMeasure(); });
 
 /* ===== 점 찍기와 끌기 ===== */
@@ -232,7 +293,7 @@ svg.addEventListener("pointermove", (e) => {
   renderMeasure();
 });
 ["pointerup", "pointercancel"].forEach(ev => svg.addEventListener(ev, () => { dragging = null; }));
-window.addEventListener("resize", () => mode === "photo" && renderMeasure());
+window.addEventListener("resize", () => photo && renderMeasure());
 
 function renderMeasure() {
   const { tragus, c7 } = pts;
@@ -267,7 +328,7 @@ function renderMeasure() {
   }
 }
 
-showWaiting();
+showSideWaiting();
 connect();
 </script>
 </body>
