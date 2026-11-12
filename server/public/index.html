@@ -30,15 +30,26 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .code { font-size: 40px; font-weight: 800; letter-spacing: 0.12em; color: #fff; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .qr svg { width: 132px; height: 132px; background: #fff; padding: 6px; border-radius: 10px; }
 .url { font-size: 12px; word-break: break-all; color: #9fb0a8; }
-.shoot { width: 100%; }
+/* 카메라 아래: [촬영] [OFF/ON] 두 칸, 양쪽 똑같이 */
+.ctrl { display: grid; grid-template-columns: 1fr 104px; gap: 8px; }
+.ctrl .onoff { font-size: 16px; font-weight: 800; letter-spacing: 0.04em; }
+.ctrl .onoff[data-state="on"] { color: var(--muted); }
+.ctrl .onoff[data-state="off"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* 찍은 사진 아래 박스: 양쪽 같은 구조·같은 높이 */
+.shot-card .btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.shot-card .btns .btn { padding: 0 8px; }
+@media (max-width: 1100px) { .shot-card .btns { grid-template-columns: repeat(2, 1fr); } }
 
 /* 찍은 사진 칸 */
 .shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.shot .screen { aspect-ratio: auto; min-height: 120px; }
+/* 두 사진 칸은 높이를 똑같이 맞추고, 사진은 그 안 가운데에 비율 그대로 */
+.pair.shots { --shot-h: clamp(300px, 60vh, 640px); }
+.shot .screen { aspect-ratio: auto; height: var(--shot-h); }
 .photo-box { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; }
-.photo-box img { display: block; max-width: 100%; max-height: 62vh; }
+.photo-box img { display: block; max-width: 100%; max-height: var(--shot-h); }
 .photo-box svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-.guide-text { color: #fff; font-size: 14px; text-align: center; padding: 10px 12px 0; min-height: 22px; }
+.guide-text { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2; pointer-events: none;
+  color: #fff; font-size: 13.5px; background: #000b; border-radius: 999px; padding: 6px 14px; white-space: nowrap; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; }
 .shot-empty { color: #9fb0a8; font-size: 14px; text-align: center; padding: 28px 16px; }
 .result { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: center; }
 .result .num { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -68,10 +79,17 @@ header { display: flex; justify-content: space-between; align-items: center; gap
           <div class="url" id="phoneUrl"></div>
           <span class="small">앱: 측정 → 노트북 보면서 촬영 · 같은 와이파이에서</span>
         </div>
+        <div class="placeholder" id="sideOffBox" hidden>
+          <strong>휴대폰 카메라 화면을 껐어요</strong>
+          <span>아래 <b>ON</b>을 누르면 다시 연결돼요. (휴대폰에서 송출 화면은 그대로 켜 두세요)</span>
+        </div>
         <video id="sideVideo" autoplay playsinline muted hidden></video>
         <div class="guides" id="sideGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
       </div>
-      <button class="btn primary big shoot" id="sideShoot" type="button" aria-label="옆모습 촬영" title="옆모습 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      <div class="ctrl">
+        <button class="btn primary big" id="sideShoot" type="button" aria-label="옆모습 촬영" title="옆모습 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+        <button class="btn big onoff" id="sideOnOff" type="button" data-state="on" aria-label="휴대폰 카메라 화면 끄기" disabled>OFF</button>
+      </div>
     </section>
 
     <section class="cam" aria-labelledby="frontTitle">
@@ -83,21 +101,25 @@ header { display: flex; justify-content: space-between; align-items: center; gap
         <div class="placeholder" id="frontWaiting">
           <strong>노트북 웹캠으로 정면을 함께 찍어요</strong>
           <span>웹캠 앞에 앉아 화면 가운데 세로선에 얼굴과 몸 중앙을 맞춰요.</span>
-          <button class="btn primary" id="frontOn" type="button">웹캠 켜기</button>
+          <span class="small">아래 <b>ON</b>을 누르면 웹캠이 켜져요.</span>
           <span class="small" id="frontErr"></span>
         </div>
         <video id="frontVideo" class="mirror" autoplay playsinline muted hidden></video>
         <div class="guides" id="frontGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
       </div>
-      <button class="btn primary big shoot" id="frontShoot" type="button" aria-label="정면 촬영" title="정면 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      <div class="ctrl">
+        <button class="btn primary big" id="frontShoot" type="button" aria-label="정면 촬영" title="정면 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+        <button class="btn big onoff" id="frontOnOff" type="button" data-state="off" aria-label="웹캠 켜기">ON</button>
+      </div>
     </section>
   </div>
 
   <!-- 찍은 사진 두 개 -->
   <h2 class="section-title">찍은 사진</h2>
-  <div class="pair">
+  <div class="pair shots">
     <section class="shot" aria-label="옆모습 사진">
-      <div class="screen" style="flex-direction:column">
+      <div class="cam-head"><h2><span class="view-tag">옆모습</span>휴대폰 사진</h2><span class="small muted" id="sideTime"></span></div>
+      <div class="screen">
         <div class="guide-text" id="guideText" hidden></div>
         <div class="photo-box" id="sideShot" hidden>
           <img id="sidePhoto" alt="찍은 옆모습 사진">
@@ -105,7 +127,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
         </div>
         <div class="shot-empty" id="sideEmpty">왼쪽 카메라 버튼을 누르면 여기에 사진이 멈춰서 나오고, 귀와 C7을 클릭해 CVA를 재요.</div>
       </div>
-      <div class="card" id="resultCard" hidden>
+      <div class="card shot-card" id="resultCard" hidden>
         <div class="result">
           <div class="num" id="cvaNum">--.-°</div>
           <div style="display:flex;flex-direction:column;gap:4px">
@@ -114,7 +136,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
           </div>
         </div>
         <div class="small muted" id="captureTilt"></div>
-        <div class="row" style="flex-wrap:wrap">
+        <div class="btns">
           <button class="btn" id="sideRetake" type="button">다시 찍기</button>
           <button class="btn" id="sideGrid" type="button" aria-pressed="true">격자 끄기</button>
           <button class="btn" id="resetPts" type="button">점 다시 찍기</button>
@@ -124,6 +146,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
     </section>
 
     <section class="shot" aria-label="정면 사진">
+      <div class="cam-head"><h2><span class="view-tag">정면</span>웹캠 사진</h2><span class="small muted" id="frontTime"></span></div>
       <div class="screen">
         <div class="photo-box" id="frontShot" hidden>
           <img id="frontPhoto" alt="찍은 정면 사진">
@@ -131,11 +154,19 @@ header { display: flex; justify-content: space-between; align-items: center; gap
         </div>
         <div class="shot-empty" id="frontEmpty">오른쪽 카메라 버튼을 누르면 여기에 사진이 나와요.</div>
       </div>
-      <div class="card" id="frontCard" hidden>
+      <div class="card shot-card" id="frontCard" hidden>
+        <div class="result">
+          <div class="num" style="color:var(--line)">--.-°</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span class="label">정면 측정</span>
+            <span class="pill neutral">준비 중 · 점 찍기 기능이 들어올 자리</span>
+          </div>
+        </div>
         <div class="small muted">저장되는 사진은 좌우가 실제 방향이에요. (화면 미리보기는 거울처럼 보여요)</div>
-        <div class="row" style="flex-wrap:wrap">
+        <div class="btns">
           <button class="btn" id="frontRetake" type="button">다시 찍기</button>
           <button class="btn" id="frontGrid" type="button" aria-pressed="true">격자 끄기</button>
+          <button class="btn" type="button" disabled title="정면 측정 기능이 들어오면 쓸 수 있어요">점 다시 찍기</button>
           <a class="btn" id="frontSave" download="정면.jpg">사진 저장</a>
         </div>
       </div>
@@ -157,6 +188,7 @@ const THRESHOLD = 50;
 const LEVEL_TOLERANCE = 2;
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
 const $ = (id) => document.getElementById(id);
+const clock = () => new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
 
 /* ===== 연결 코드 (새로고침해도 유지) ===== */
@@ -169,7 +201,7 @@ $("phoneUrl").textContent = phoneUrl;
 if (window.qrcode) { const q = qrcode(0, "M"); q.addData(phoneUrl); q.make(); $("qr").innerHTML = q.createSvgTag({ cellSize: 4, margin: 2 }); }
 
 /* ===== ① 휴대폰 카메라 (옆모습) — 서버로 연결 코드 맞추고 영상 받기 ===== */
-let ws = null, pc = null, lastTilt = null;
+let ws = null, pc = null, lastTilt = null, sideOff = false;
 function setStatus(text, on) { $("statusText").textContent = text; $("status").dataset.on = on ? "1" : "0"; }
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 
@@ -178,13 +210,17 @@ function connect() {
   ws = new WebSocket(`${proto}://${location.host}/ws/${code}?role=viewer`);
   ws.onopen = () => setStatus("휴대폰 기다리는 중", false);
   ws.onmessage = (e) => handle(JSON.parse(e.data));
-  ws.onclose = (e) => { setStatus("서버 연결 끊김 · 다시 연결 중", false); if (e.code !== 4000) setTimeout(connect, 2000); };
+  ws.onclose = (e) => {
+    if (e.code === 4001) return; // 노트북에서 OFF를 눌러 끈 경우
+    setStatus("서버 연결 끊김 · 다시 연결 중", false);
+    if (e.code !== 4000) setTimeout(() => { if (!sideOff) connect(); }, 2000);
+  };
 }
 
 async function handle(msg) {
   switch (msg.type) {
     case "peer-joined": setStatus("휴대폰 연결 중", false); $("sideState").textContent = "연결 중"; break;
-    case "peer-left": closePeer(); showSideWaiting(); setStatus("휴대폰 연결 끊김", false); break;
+    case "peer-left": closePeer(); if (!sideOff) { showSideWaiting(); setStatus("휴대폰 연결 끊김", false); } break;
     case "offer": {
       closePeer();
       pc = new RTCPeerConnection({ iceServers: ICE });
@@ -206,14 +242,45 @@ async function handle(msg) {
 }
 function closePeer() { if (pc) { pc.close(); pc = null; } }
 
+function setOnOff(id, live, enabled = true) {
+  const b = $(id);
+  b.dataset.state = live ? "on" : "off";
+  b.textContent = live ? "OFF" : "ON";
+  b.disabled = !enabled;
+  const what = id === "sideOnOff" ? "휴대폰 카메라 화면" : "웹캠";
+  b.setAttribute("aria-label", `${what} ${live ? "끄기" : "켜기"}`);
+}
 function showSideWaiting() {
-  $("sideWaiting").hidden = false; $("sideVideo").hidden = true; $("sideGuides").hidden = true; $("levelBox").hidden = true;
+  $("sideWaiting").hidden = false; $("sideOffBox").hidden = true; $("sideVideo").hidden = true; $("sideGuides").hidden = true; $("levelBox").hidden = true;
   $("sideShoot").disabled = true; $("sideState").textContent = "연결 대기";
+  setOnOff("sideOnOff", true, false); // 아직 연결 전이라 끌 것이 없음
 }
 function showSideLive() {
-  $("sideWaiting").hidden = true; $("sideVideo").hidden = false; $("sideGuides").hidden = false; $("levelBox").hidden = !lastTilt;
+  $("sideWaiting").hidden = true; $("sideOffBox").hidden = true; $("sideVideo").hidden = false; $("sideGuides").hidden = false; $("levelBox").hidden = !lastTilt;
   $("sideShoot").disabled = false; $("sideState").textContent = "실시간";
+  setOnOff("sideOnOff", true);
 }
+function showSideOff() {
+  $("sideWaiting").hidden = true; $("sideOffBox").hidden = false; $("sideVideo").hidden = true; $("sideGuides").hidden = true; $("levelBox").hidden = true;
+  $("sideShoot").disabled = true; $("sideState").textContent = "꺼짐";
+  setOnOff("sideOnOff", false);
+}
+$("sideOnOff").addEventListener("click", () => {
+  if (!sideOff) {
+    // 끄기: 영상 연결과 서버 연결을 닫음 → 휴대폰도 송출을 멈춤
+    sideOff = true;
+    closePeer();
+    $("sideVideo").srcObject = null;
+    if (ws) { try { ws.close(4001, "off"); } catch {} }
+    showSideOff();
+    setStatus("휴대폰 카메라 꺼짐", false);
+  } else {
+    // 켜기: 같은 코드로 다시 연결 → 휴대폰이 아직 송출 화면에 있으면 바로 다시 연결됨
+    sideOff = false;
+    showSideWaiting();
+    connect();
+  }
+});
 function renderLevel() {
   if (!lastTilt) return;
   const ok = Math.abs(lastTilt.roll) <= LEVEL_TOLERANCE && Math.abs(lastTilt.pitch) <= LEVEL_TOLERANCE;
@@ -224,7 +291,18 @@ function renderLevel() {
 
 /* ===== ② 노트북 웹캠 (정면) ===== */
 let frontStream = null;
-$("frontOn").addEventListener("click", async () => {
+function showFrontOff() {
+  $("frontWaiting").hidden = false; $("frontVideo").hidden = true; $("frontGuides").hidden = true;
+  $("frontShoot").disabled = true; $("frontState").textContent = "꺼짐";
+  setOnOff("frontOnOff", false);
+}
+function frontOff() {
+  if (frontStream) { frontStream.getTracks().forEach((t) => t.stop()); frontStream = null; }
+  $("frontVideo").srcObject = null;
+  showFrontOff();
+}
+$("frontOnOff").addEventListener("click", () => { if (frontStream) frontOff(); else frontOn(); });
+async function frontOn() {
   $("frontErr").textContent = "";
   try {
     frontStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
@@ -235,11 +313,9 @@ $("frontOn").addEventListener("click", async () => {
   $("frontVideo").srcObject = frontStream;
   $("frontWaiting").hidden = true; $("frontVideo").hidden = false; $("frontGuides").hidden = false;
   $("frontShoot").disabled = false; $("frontState").textContent = "실시간";
-  frontStream.getVideoTracks()[0].addEventListener("ended", () => {
-    $("frontWaiting").hidden = false; $("frontVideo").hidden = true; $("frontGuides").hidden = true;
-    $("frontShoot").disabled = true; $("frontState").textContent = "꺼짐";
-  });
-});
+  setOnOff("frontOnOff", true);
+  frontStream.getVideoTracks()[0].addEventListener("ended", () => { frontStream = null; showFrontOff(); });
+}
 
 /* 영상 한 장면을 사진으로 (좌우 반전 없이 실제 방향) */
 function grab(video) {
@@ -253,7 +329,7 @@ function grab(video) {
 let photo = null, pts = { tragus: null, c7: null }, tiltAtCapture = null;
 function shootSide() {
   const v = $("sideVideo");
-  if (!v.videoWidth || $("sideVideo").hidden) { flash("sideRetake", "휴대폰을 먼저 연결해 주세요"); return; }
+  if (!v.videoWidth || $("sideVideo").hidden) { flash("sideRetake", sideOff ? "ON을 먼저 눌러 주세요" : "휴대폰을 먼저 연결해 주세요"); return; }
   const g = grab(v);
   tiltAtCapture = lastTilt ? { ...lastTilt } : null;
   photo = { w: g.w, h: g.h };
@@ -262,10 +338,11 @@ function shootSide() {
     $("sideEmpty").hidden = true; $("sideShot").hidden = false; $("guideText").hidden = false; $("resultCard").hidden = false;
     $("captureTilt").textContent = tiltAtCapture ? `찍을 때 휴대폰 기울기: 좌우 ${tiltAtCapture.roll.toFixed(1)}° · 앞뒤 ${tiltAtCapture.pitch.toFixed(1)}°` : "찍을 때 기울기 정보 없음";
     renderMeasure();
-    $("sideShot").scrollIntoView({ behavior: "smooth", block: "center" });
+    document.querySelector(".pair.shots").scrollIntoView({ behavior: "smooth", block: "start" });
   };
   $("sidePhoto").src = g.url;
   $("sideSave").href = g.url; $("sideSave").download = `옆모습-${stamp()}.jpg`;
+  $("sideTime").textContent = clock() + " 촬영";
 }
 $("sideShoot").addEventListener("click", shootSide);
 $("sideRetake").addEventListener("click", shootSide);
@@ -274,12 +351,13 @@ $("sideRetake").addEventListener("click", shootSide);
 let frontPhoto = null;
 function shootFront() {
   const v = $("frontVideo");
-  if (!v.videoWidth || $("frontVideo").hidden) { flash("frontRetake", "웹캠을 먼저 켜 주세요"); return; }
+  if (!v.videoWidth || $("frontVideo").hidden) { flash("frontRetake", "ON을 먼저 눌러 주세요"); return; }
   const g = grab(v);
   frontPhoto = { w: g.w, h: g.h };
   $("frontPhoto").onload = () => { renderFrontGrid(); };
   $("frontPhoto").src = g.url; $("frontShot").hidden = false; $("frontEmpty").hidden = true; $("frontCard").hidden = false;
   $("frontSave").href = g.url; $("frontSave").download = `정면-${stamp()}.jpg`;
+  $("frontTime").textContent = clock() + " 촬영";
 }
 $("frontShoot").addEventListener("click", shootFront);
 $("frontRetake").addEventListener("click", shootFront);
