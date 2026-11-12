@@ -44,7 +44,8 @@
           "microphonePermission": "마이크는 사용하지 않습니다."
         }
       ],
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-font"
     ]
   }
 }

@@ -1,35 +1,75 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+// 앱 시작점: 글꼴 불러오기 → 저장된 데이터 불러오기 → 탭 화면
+import { useEffect, useState } from "react";
+import { ActivityIndicator, BackHandler, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import MeasureScreen from "./src/screens/MeasureScreen";
+import { useFonts } from "expo-font";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { TabBar, type TabKey } from "./src/components/TabBar";
+import { AppStateProvider, useAppState } from "./src/store/AppState";
+import { colors, fontFiles } from "./src/theme";
+import MeasureHomeScreen from "./src/screens/MeasureHomeScreen";
+import PhotoMeasureScreen from "./src/screens/PhotoMeasureScreen";
 import LiveSendScreen from "./src/screens/LiveSendScreen";
-
-// 임시 화면 전환 (나중에 하단 탭으로 바꿀 예정)
-type Mode = "live" | "measure";
+import RecordsScreen from "./src/screens/RecordsScreen";
+import ExerciseScreen from "./src/screens/ExerciseScreen";
+import SettingsScreen from "./src/screens/SettingsScreen";
 
 export default function App() {
-  const [mode, setMode] = useState<Mode>("live");
+  const [fontsLoaded] = useFonts(fontFiles);
   return (
-    <View style={{ flex: 1, backgroundColor: "black" }}>
-      {mode === "live" ? <LiveSendScreen /> : <MeasureScreen />}
-      <View style={styles.switcher}>
-        {(["live", "measure"] as Mode[]).map((m) => (
-          <Pressable key={m} onPress={() => setMode(m)} style={[styles.tab, mode === m && styles.tabOn]}>
-            <Text style={[styles.tabText, mode === m && styles.tabTextOn]}>
-              {m === "live" ? "노트북 송출" : "폰에서 측정"}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <StatusBar style="light" />
+    <SafeAreaProvider>
+      <AppStateProvider>
+        {fontsLoaded ? <Main /> : <Loading />}
+      </AppStateProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function Loading() {
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+      <ActivityIndicator color={colors.accent} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  switcher: { position: "absolute", top: 12, alignSelf: "center", flexDirection: "row", backgroundColor: "#000000aa", borderRadius: 999, padding: 4, marginTop: 24 },
-  tab: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999 },
-  tabOn: { backgroundColor: "#0b9b5a" },
-  tabText: { color: "#c9d3d8", fontWeight: "600", fontSize: 13 },
-  tabTextOn: { color: "white" },
-});
+// 측정 탭 안에서 이동하는 화면 (첫 화면 / 폰 촬영 / 노트북 송출)
+type MeasureRoute = "home" | "photo" | "live";
+
+function Main() {
+  const { ready } = useAppState();
+  const [tab, setTab] = useState<TabKey>("measure");
+  const [route, setRoute] = useState<MeasureRoute>("home");
+  const fullScreen = tab === "measure" && route !== "home"; // 카메라 화면에서는 탭 숨김
+
+  // 안드로이드 뒤로가기 버튼: 카메라 화면 → 측정 첫 화면 → 측정 탭
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (fullScreen) { setRoute("home"); return true; }
+      if (tab !== "measure") { setTab("measure"); return true; }
+      return false;
+    });
+    return () => sub.remove();
+  }, [fullScreen, tab]);
+
+  if (!ready) return <Loading />;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={{ flex: 1 }}>
+        {tab === "measure" && route === "home" && (
+          <MeasureHomeScreen onPhoto={() => setRoute("photo")} onLive={() => setRoute("live")} />
+        )}
+        {tab === "measure" && route === "photo" && (
+          <PhotoMeasureScreen onBack={() => setRoute("home")} onSaved={() => { setRoute("home"); setTab("records"); }} />
+        )}
+        {tab === "measure" && route === "live" && <LiveSendScreen onBack={() => setRoute("home")} />}
+        {tab === "records" && <RecordsScreen onMeasure={() => { setTab("measure"); setRoute("home"); }} />}
+        {tab === "exercise" && <ExerciseScreen />}
+        {tab === "settings" && <SettingsScreen />}
+      </View>
+      {!fullScreen && <TabBar value={tab} onChange={(t) => { setTab(t); setRoute("home"); }} />}
+      <StatusBar style={fullScreen ? "light" : "dark"} />
+    </View>
+  );
+}

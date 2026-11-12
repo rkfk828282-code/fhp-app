@@ -1,7 +1,8 @@
 // 실시간 송출 화면: 폰 카메라 화면을 노트북으로 실시간 전송
 // 노트북 화면(public/index.html)과 서버(src/index.ts)는 neckcheck-live 프로젝트에 있어요.
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeepAwake } from "expo-keep-awake";
 import {
   mediaDevices, MediaStream, RTCIceCandidate, RTCPeerConnection,
@@ -9,6 +10,8 @@ import {
 } from "react-native-webrtc";
 import { LevelGuide, useTilt } from "../components/LevelGuide";
 import { SERVER_URL } from "../config";
+import { Button, Text } from "../components/ui";
+import { colors, fonts } from "../theme";
 
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
 type Status = "idle" | "waiting" | "connecting" | "live" | "failed";
@@ -20,8 +23,9 @@ const STATUS_TEXT: Record<Status, string> = {
   failed: "영상 연결 실패 · 같은 와이파이인지 확인해 주세요",
 };
 
-export default function LiveSendScreen() {
+export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
   useKeepAwake(); // 송출 중에 화면이 꺼지지 않게
+  const insets = useSafeAreaInsets();
   const tilt = useTilt();
   const [code, setCode] = useState("");
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -130,17 +134,21 @@ export default function LiveSendScreen() {
   // ① 코드 입력
   if (!stream) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.title}>노트북 연결 코드</Text>
-        <TextInput
-          style={styles.codeInput} value={code} onChangeText={setCode}
-          keyboardType="number-pad" maxLength={6} placeholder="000000" placeholderTextColor="#9aa59f"
-        />
-        <Pressable style={styles.primary} onPress={start}>
-          <Text style={styles.primaryText}>카메라 켜고 연결</Text>
+      <View style={[styles.center, { paddingTop: insets.top + 12 }]}>
+        <Pressable onPress={onBack} hitSlop={12} style={{ alignSelf: "flex-start" }}>
+          <Text weight="bold" style={{ color: colors.accent }}>‹ 뒤로</Text>
         </Pressable>
-        <Text style={styles.help}>노트북에서 연결 화면을 열면 6자리 코드가 나와요.</Text>
-        {!!error && <Text style={styles.error}>{error}</Text>}
+        <View style={{ flex: 1, justifyContent: "center", gap: 14 }}>
+          <Text weight="heavy" style={styles.title}>노트북 보면서 촬영</Text>
+          <Text style={styles.help}>노트북에서 {SERVER_URL.replace("https://", "")} 를 열면 6자리 코드가 나와요. 폰과 노트북은 같은 와이파이에 연결해 주세요.</Text>
+          <TextInput
+            style={styles.codeInput} value={code} onChangeText={setCode}
+            keyboardType="number-pad" maxLength={6} placeholder="000000" placeholderTextColor="#9aa59f"
+            accessibilityLabel="노트북 연결 코드 6자리"
+          />
+          <Button kind="primary" big title="카메라 켜고 연결" onPress={start} />
+          {!!error && <Text style={styles.error}>{error}</Text>}
+        </View>
       </View>
     );
   }
@@ -150,11 +158,13 @@ export default function LiveSendScreen() {
     <View style={styles.flex}>
       <RTCView streamURL={stream.toURL()} style={styles.flex} objectFit="cover" />
       <View pointerEvents="none" style={styles.vLine} />
-      <View style={styles.topBar}><LevelGuide tilt={tilt} /></View>
-      <View style={styles.bottomBar}>
-        <Text style={[styles.status, status === "live" && { color: "#3fcf89" }]}>● {STATUS_TEXT[status]}</Text>
+      <View style={[styles.topBar, { top: insets.top + 8 }]}><LevelGuide tilt={tilt} /></View>
+      <View style={[styles.bottomBar, { bottom: insets.bottom + 24 }]}>
+        <Text weight="bold" style={[styles.status, status === "live" && { color: "#3fcf89" }]}>● {STATUS_TEXT[status]}</Text>
         <Text style={styles.help2}>노트북 화면을 보며 자세를 맞추고, 찍기는 노트북에서 눌러요.</Text>
-        <Pressable style={styles.secondary} onPress={stop}><Text style={styles.secondaryText}>송출 끝내기</Text></Pressable>
+        <Pressable style={styles.secondary} onPress={() => { stop(); onBack(); }}>
+          <Text weight="bold" style={{ color: "#fff" }}>송출 끝내기</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -162,21 +172,18 @@ export default function LiveSendScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: "black" },
-  center: { flex: 1, justifyContent: "center", padding: 24, gap: 14, backgroundColor: "#f4f6f5" },
-  title: { fontSize: 18, fontWeight: "800", color: "#191f1c" },
+  center: { flex: 1, padding: 24, backgroundColor: colors.bg },
+  title: { fontSize: 24 },
   codeInput: {
-    fontSize: 30, fontWeight: "800", letterSpacing: 6, textAlign: "center", color: "#191f1c",
-    backgroundColor: "white", borderWidth: 1, borderColor: "#dbe2de", borderRadius: 12, paddingVertical: 12,
+    fontSize: 30, fontFamily: fonts.heavy, letterSpacing: 6, textAlign: "center", color: colors.ink,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingVertical: 12,
   },
-  primary: { backgroundColor: "#0b9b5a", borderRadius: 12, paddingVertical: 16, alignItems: "center" },
-  primaryText: { color: "white", fontSize: 17, fontWeight: "700" },
-  help: { color: "#5e6a64", fontSize: 13, textAlign: "center" },
-  error: { color: "#b8432f", fontSize: 14, textAlign: "center" },
+  help: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  error: { color: colors.warn, fontSize: 14, textAlign: "center" },
   vLine: { position: "absolute", top: 0, bottom: 0, left: "50%", width: 1, backgroundColor: "#ffffff99" },
-  topBar: { position: "absolute", top: 84, left: 0, right: 0, alignItems: "center" },
-  bottomBar: { position: "absolute", bottom: 32, left: 16, right: 16, gap: 8, alignItems: "center" },
-  status: { color: "#c9d3d8", fontSize: 15, fontWeight: "700" },
+  topBar: { position: "absolute", left: 0, right: 0, alignItems: "center" },
+  bottomBar: { position: "absolute", left: 16, right: 16, gap: 8, alignItems: "center" },
+  status: { color: "#c9d3d8", fontSize: 15 },
   help2: { color: "#c9d3d8", fontSize: 12.5, textAlign: "center" },
-  secondary: { backgroundColor: "#ffffff22", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18 },
-  secondaryText: { color: "white", fontWeight: "700" },
+  secondary: { backgroundColor: "#ffffff26", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18 },
 });
