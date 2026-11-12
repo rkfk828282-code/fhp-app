@@ -30,6 +30,7 @@ h2 { font-size: 15px; margin: 0; }
   font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px;
 }
+a.btn { text-decoration: none; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn.big { min-height: 56px; font-size: 17px; }
 .btn[disabled] { opacity: 0.45; cursor: default; }
