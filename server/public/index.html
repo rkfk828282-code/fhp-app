@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>거북목 체크 · 노트북 화면</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+.app { max-width: 1180px; margin: 0 auto; padding: 18px 20px 32px; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.side { display: flex; flex-direction: column; gap: 14px; }
+
+.stage-wrap { background: var(--stage); border-radius: 14px; padding: 12px; min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; position: relative; }
+.stage { position: relative; width: fit-content; max-width: 100%; }
+.stage video, .stage img { display: block; max-width: 100%; max-height: 78vh; border-radius: 6px; background: #000; }
+.guides { position: absolute; inset: 0; pointer-events: none; }
+.guides .v { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #ffffff99; }
+.guides .h { position: absolute; left: 0; right: 0; height: 1px; background: #ffffff55; }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.stage-top { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 2; }
+.waiting { color: #c9d3d8; text-align: center; font-size: 15px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.guide-text { color: #fff; font-size: 14px; min-height: 22px; text-align: center; }
+
+.code { font-size: 44px; font-weight: 800; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; text-align: center; }
+.qr { display: flex; justify-content: center; }
+.qr img, .qr svg { width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 10px; }
+.url { font-size: 12.5px; word-break: break-all; text-align: center; color: var(--muted); }
+.steps { margin: 0; padding-left: 20px; font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; }
+
+.result { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: center; }
+.result .num { font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>거북목 체크</h1>
+    <span class="status" id="status"><i></i><span id="statusText">서버 연결 중</span></span>
+  </header>
+
+  <div class="grid">
+    <!-- 왼쪽: 폰 카메라 실시간 화면 / 찍은 사진 -->
+    <div class="stage-wrap" id="stageWrap">
+      <div class="stage-top" id="levelBox" hidden><div class="level" id="level">수평 확인 중</div></div>
+      <div class="guide-text" id="guideText" hidden></div>
+      <div class="waiting" id="waiting">
+        <strong>휴대폰 카메라를 기다리는 중</strong>
+        <span class="small">오른쪽 QR을 휴대폰 카메라로 비추거나, 연결 코드를 입력해 주세요.</span>
+      </div>
+      <div class="stage" id="liveStage" hidden>
+        <video id="video" autoplay playsinline muted></video>
+        <div class="guides"><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
+      </div>
+      <div class="stage" id="photoStage" hidden>
+        <img id="photo" alt="찍은 옆모습 사진">
+        <svg id="overlay" aria-label="측정점 표시 영역"></svg>
+      </div>
+    </div>
+
+    <!-- 오른쪽 -->
+    <div class="side">
+      <div class="card" id="connectCard">
+        <h2>휴대폰 연결</h2>
+        <div class="code" id="code">------</div>
+        <div class="qr" id="qr"></div>
+        <div class="url" id="phoneUrl"></div>
+        <ol class="steps">
+          <li>휴대폰과 노트북을 같은 와이파이에 연결</li>
+          <li>휴대폰으로 QR 스캔 (또는 주소 열고 코드 입력)</li>
+          <li>휴대폰에서 <b>카메라 켜고 연결</b> 누르기</li>
+        </ol>
+      </div>
+
+      <div class="card" id="liveCard" hidden>
+        <h2>실시간 화면</h2>
+        <p class="small muted" style="margin:0">휴대폰을 몸 옆에 세우고, 가운데 세로선에 몸 옆선을 맞춰 주세요. 위쪽 표시가 초록색일 때 찍으면 오차가 줄어요.</p>
+        <button class="btn primary big" id="captureBtn" type="button">지금 찍기</button>
+      </div>
+
+      <div class="card" id="resultCard" hidden>
+        <div class="result">
+          <div class="num" id="cvaNum">--.-°</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span class="label">CVA 두개척추각</span>
+            <span class="pill neutral" id="cvaPill">점 2개를 찍으면 계산돼요</span>
+          </div>
+        </div>
+        <div class="small muted" id="captureTilt"></div>
+        <div class="row">
+          <button class="btn" id="resetPts" type="button">점 다시 찍기</button>
+          <button class="btn primary" id="backLive" type="button" style="flex:1">실시간 화면으로</button>
+        </div>
+      </div>
+      <p class="notice">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== CVA 계산 (앱의 src/utils/cva.ts와 같음) ===== */
+function calcCVA(tragus, c7) {
+  return Math.atan2(c7.y - tragus.y, Math.abs(tragus.x - c7.x)) * 180 / Math.PI;
+}
+function describeCVA(cva, threshold) {
+  return cva >= threshold ? { label: "기준 범위", kind: "ok" } : { label: "전방머리자세 경향", kind: "warn" };
+}
+const THRESHOLD = 50;
+const LEVEL_TOLERANCE = 2;
+const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
+const $ = (id) => document.getElementById(id);
+
+/* ===== 연결 코드 (새로고침해도 유지) ===== */
+let code;
+try { code = sessionStorage.getItem("neck.code"); } catch {}
+if (!code) { code = String(Math.floor(100000 + Math.random() * 900000)); try { sessionStorage.setItem("neck.code", code); } catch {} }
+$("code").textContent = code;
+const phoneUrl = `${location.origin}/phone.html#${code}`;
+$("phoneUrl").textContent = phoneUrl;
+if (window.qrcode) { const q = qrcode(0, "M"); q.addData(phoneUrl); q.make(); $("qr").innerHTML = q.createSvgTag({ cellSize: 4, margin: 2 }); }
+
+/* ===== 서버 연결 + 영상 받기 ===== */
+let ws = null, pc = null, lastTilt = null;
+
+function setStatus(text, on) { $("statusText").textContent = text; $("status").dataset.on = on ? "1" : "0"; }
+function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws/${code}?role=viewer`);
+  ws.onopen = () => setStatus("휴대폰 기다리는 중", false);
+  ws.onmessage = (e) => handle(JSON.parse(e.data));
+  ws.onclose = (e) => {
+    setStatus("서버 연결 끊김 · 다시 연결 중", false);
+    if (e.code !== 4000) setTimeout(connect, 2000);
+  };
+}
+
+async function handle(msg) {
+  switch (msg.type) {
+    case "peer-joined": setStatus("휴대폰 연결 중", false); break;
+    case "peer-left": closePeer(); showWaiting(); setStatus("휴대폰 연결 끊김", false); break;
+    case "offer": {
+      closePeer();
+      pc = new RTCPeerConnection({ iceServers: ICE });
+      pc.onicecandidate = (e) => e.candidate && send({ type: "ice", candidate: e.candidate });
+      pc.ontrack = (e) => { $("video").srcObject = e.streams[0]; showLive(); };
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "connected") setStatus("휴대폰과 연결됨", true);
+        if (pc.connectionState === "failed") setStatus("영상 연결 실패 · 같은 와이파이인지 확인해 주세요", false);
+      };
+      await pc.setRemoteDescription(msg.sdp);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      send({ type: "answer", sdp: pc.localDescription });
+      break;
+    }
+    case "ice": if (pc) { try { await pc.addIceCandidate(msg.candidate); } catch {} } break;
+    case "tilt": lastTilt = msg; renderLevel(); break;
+  }
+}
+function closePeer() { if (pc) { pc.close(); pc = null; } }
+
+/* ===== 화면 상태 ===== */
+let mode = "waiting"; // waiting | live | photo
+function showWaiting() {
+  mode = "waiting";
+  $("waiting").hidden = false; $("liveStage").hidden = true; $("photoStage").hidden = true;
+  $("levelBox").hidden = true; $("guideText").hidden = true;
+  $("connectCard").hidden = false; $("liveCard").hidden = true; $("resultCard").hidden = true;
+}
+function showLive() {
+  mode = "live";
+  $("waiting").hidden = true; $("liveStage").hidden = false; $("photoStage").hidden = true;
+  $("levelBox").hidden = !lastTilt; $("guideText").hidden = true;
+  $("connectCard").hidden = true; $("liveCard").hidden = false; $("resultCard").hidden = true;
+}
+function renderLevel() {
+  if (!lastTilt) return;
+  const ok = Math.abs(lastTilt.roll) <= LEVEL_TOLERANCE && Math.abs(lastTilt.pitch) <= LEVEL_TOLERANCE;
+  $("level").dataset.ok = ok ? "1" : "0";
+  $("level").innerHTML = `${ok ? "수평 OK" : "휴대폰을 똑바로 세워 주세요"}<small>좌우 ${lastTilt.roll.toFixed(1)}° · 앞뒤 ${lastTilt.pitch.toFixed(1)}°</small>`;
+  if (mode === "live") $("levelBox").hidden = false;
+}
+
+/* ===== 찍기: 지금 영상 한 장면을 사진으로 ===== */
+let photo = null, pts = { tragus: null, c7: null }, tiltAtCapture = null;
+$("captureBtn").addEventListener("click", () => {
+  const v = $("video");
+  if (!v.videoWidth) return;
+  const c = document.createElement("canvas");
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext("2d").drawImage(v, 0, 0);
+  tiltAtCapture = lastTilt ? { ...lastTilt } : null;
+  photo = { w: c.width, h: c.height };
+  pts = { tragus: null, c7: null };
+  $("photo").onload = () => {
+    mode = "photo";
+    $("liveStage").hidden = true; $("photoStage").hidden = false; $("levelBox").hidden = true; $("guideText").hidden = false;
+    $("liveCard").hidden = true; $("resultCard").hidden = false;
+    $("captureTilt").textContent = tiltAtCapture ? `찍을 때 기울기: 좌우 ${tiltAtCapture.roll.toFixed(1)}° · 앞뒤 ${tiltAtCapture.pitch.toFixed(1)}°` : "찍을 때 기울기 정보 없음";
+    renderMeasure();
+  };
+  $("photo").src = c.toDataURL("image/jpeg", 0.92);
+});
+$("backLive").addEventListener("click", () => { if ($("video").srcObject) showLive(); else showWaiting(); });
+$("resetPts").addEventListener("click", () => { pts = { tragus: null, c7: null }; renderMeasure(); });
+
+/* ===== 점 찍기와 끌기 ===== */
+const svg = $("overlay");
+let dragging = null;
+function toImg(e) {
+  const r = svg.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * photo.w, y: (e.clientY - r.top) / r.height * photo.h, scale: photo.w / r.width };
+}
+svg.addEventListener("pointerdown", (e) => {
+  if (!photo) return;
+  const p = toImg(e), hit = 30 * p.scale;
+  const near = ["c7", "tragus"].find(k => pts[k] && Math.hypot(pts[k].x - p.x, pts[k].y - p.y) < hit);
+  if (near) dragging = near;
+  else if (!pts.tragus) { pts.tragus = { x: p.x, y: p.y }; dragging = "tragus"; }
+  else if (!pts.c7) { pts.c7 = { x: p.x, y: p.y }; dragging = "c7"; }
+  if (dragging) { svg.setPointerCapture(e.pointerId); e.preventDefault(); renderMeasure(); }
+});
+svg.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  const p = toImg(e);
+  pts[dragging] = { x: Math.max(0, Math.min(photo.w, p.x)), y: Math.max(0, Math.min(photo.h, p.y)) };
+  renderMeasure();
+});
+["pointerup", "pointercancel"].forEach(ev => svg.addEventListener(ev, () => { dragging = null; }));
+window.addEventListener("resize", () => mode === "photo" && renderMeasure());
+
+function renderMeasure() {
+  const { tragus, c7 } = pts;
+  $("guideText").textContent = !tragus ? "① 귀 이주(귓구멍 앞 작은 돌기)를 클릭하세요"
+    : !c7 ? "② C7 극돌기(목 뒤 가장 튀어나온 뼈)를 클릭하세요" : "점을 끌어서 위치를 다듬을 수 있어요";
+  const r = svg.getBoundingClientRect(), s = r.width ? photo.w / r.width : 1;
+  svg.setAttribute("viewBox", `0 0 ${photo.w} ${photo.h}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  let out = "";
+  if (tragus && c7) {
+    const len = Math.hypot(tragus.x - c7.x, tragus.y - c7.y), dir = tragus.x >= c7.x ? 1 : -1;
+    const ang = Math.atan2(c7.y - tragus.y, Math.abs(tragus.x - c7.x)), R = 46 * s;
+    const bx = c7.x + dir * R * Math.cos(ang), by = c7.y - R * Math.sin(ang);
+    const lx = c7.x + dir * (R + 30 * s) * Math.cos(ang / 2), ly = c7.y - (R + 30 * s) * Math.sin(ang / 2);
+    out += `<line x1="${c7.x}" y1="${c7.y}" x2="${c7.x + dir * len * 1.05}" y2="${c7.y}" stroke="#2ec4d6" stroke-width="${3 * s}" stroke-dasharray="${8 * s} ${6 * s}"/>`;
+    out += `<line x1="${c7.x}" y1="${c7.y}" x2="${tragus.x}" y2="${tragus.y}" stroke="#f2c230" stroke-width="${3.5 * s}"/>`;
+    out += `<path d="M${c7.x + dir * R} ${c7.y} A${R} ${R} 0 0 ${dir === 1 ? 0 : 1} ${bx} ${by}" fill="none" stroke="#fff" stroke-width="${2.5 * s}"/>`;
+    out += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-weight="700" font-size="${17 * s}" fill="#fff" stroke="#000" stroke-width="${4 * s}" paint-order="stroke">${calcCVA(tragus, c7).toFixed(1)}°</text>`;
+  }
+  const dot = (p, c) => p ? `<circle cx="${p.x}" cy="${p.y}" r="${18 * s}" fill="${c}" fill-opacity="0.18"/><circle cx="${p.x}" cy="${p.y}" r="${8 * s}" fill="${c}" stroke="#000" stroke-width="${2 * s}"/>` : "";
+  svg.innerHTML = out + dot(tragus, "#f2c230") + dot(c7, "#2ec4d6");
+
+  const pill = $("cvaPill");
+  if (tragus && c7) {
+    const cva = calcCVA(tragus, c7), d = describeCVA(cva, THRESHOLD);
+    $("cvaNum").textContent = cva.toFixed(1) + "°";
+    $("cvaNum").style.color = `var(--${d.kind})`;
+    pill.className = "pill " + d.kind; pill.textContent = d.label;
+  } else {
+    $("cvaNum").textContent = "--.-°"; $("cvaNum").style.color = "";
+    pill.className = "pill neutral"; pill.textContent = "점 2개를 찍으면 계산돼요";
+  }
+}
+
+showWaiting();
+connect();
+</script>
+</body>
+</html>

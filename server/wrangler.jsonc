@@ -1,0 +1,10 @@
+{
+  // 거북목 체크 - 실시간 카메라 연동 서버
+  "name": "neckcheck-live",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  // public 폴더의 화면(노트북 화면, 폰 송출 화면)을 그대로 보여주고, /ws/ 주소만 아래 코드가 처리
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/ws/*"] },
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
+}
