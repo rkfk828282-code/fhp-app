@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>거북목 체크 · 휴대폰 카메라</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--stage); color: #fff; }
+.app { min-height: 100vh; display: flex; flex-direction: column; gap: 12px; padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+header { display: flex; justify-content: space-between; align-items: center; }
+header h1 { color: #fff; font-size: 18px; }
+.status { color: #c9d3d8; }
+.preview { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: #000; min-height: 50vh; }
+.preview video { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
+.guides { position: absolute; inset: 0; pointer-events: none; }
+.guides .v { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #ffffff99; }
+.level-wrap { position: absolute; top: 12px; left: 0; right: 0; display: flex; justify-content: center; }
+.start { background: var(--surface); color: var(--ink); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.start input { font: inherit; font-size: 28px; font-weight: 800; letter-spacing: 0.15em; text-align: center; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.msg { color: #c9d3d8; font-size: 13.5px; text-align: center; margin: 0; }
+.err { color: #ffb4a6; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>거북목 체크 · 카메라</h1>
+    <span class="status" id="status"><i></i><span id="statusText">준비</span></span>
+  </header>
+
+  <div class="start" id="startCard">
+    <h2>노트북 연결 코드</h2>
+    <input id="codeInput" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="연결 코드 6자리">
+    <button class="btn primary big" id="startBtn" type="button">카메라 켜고 연결</button>
+    <p class="small muted" style="margin:0">노트북 화면에 나온 6자리 코드예요. 카메라와 움직임 센서 권한을 물으면 허용해 주세요.</p>
+    <p class="small err" id="err" hidden></p>
+  </div>
+
+  <div class="preview" id="preview" hidden>
+    <video id="video" autoplay playsinline muted></video>
+    <div class="guides"><div class="v"></div></div>
+    <div class="level-wrap"><div class="level" id="level">수평 확인 중</div></div>
+  </div>
+  <p class="msg" id="msg" hidden>노트북 화면을 보면서 자세를 맞춰 주세요. 찍기는 노트북에서 눌러요.</p>
+</div>
+
+<script>
+const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
+const LEVEL_TOLERANCE = 2;
+const $ = (id) => document.getElementById(id);
+$("codeInput").value = (location.hash.slice(1).match(/\d{6}/) || [""])[0];
+
+let ws = null, pc = null, stream = null, code = "";
+function setStatus(text, on) { $("statusText").textContent = text; $("status").dataset.on = on ? "1" : "0"; }
+function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+function showErr(t) { $("err").textContent = t; $("err").hidden = false; }
+
+$("startBtn").addEventListener("click", async () => {
+  code = $("codeInput").value.trim();
+  if (!/^\d{6}$/.test(code)) { showErr("노트북에 나온 6자리 숫자를 입력해 주세요."); return; }
+  $("err").hidden = true;
+
+  // 아이폰은 움직임 센서 권한을 버튼을 누른 순간에 물어야 해요
+  try { if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission) await DeviceMotionEvent.requestPermission(); } catch {}
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+  } catch (e) {
+    showErr("카메라를 켤 수 없어요. 브라우저 설정에서 카메라 권한을 허용한 뒤 다시 눌러 주세요.");
+    return;
+  }
+  $("video").srcObject = stream;
+  $("startCard").hidden = true; $("preview").hidden = false; $("msg").hidden = false;
+  startTilt();
+  connect();
+});
+
+/* ===== 기울기 (앱의 LevelGuide와 같은 계산) ===== */
+let tilt = null, lastSent = 0;
+function startTilt() {
+  window.addEventListener("devicemotion", (e) => {
+    const g = e.accelerationIncludingGravity;
+    if (!g || g.x == null) return;
+    const roll = Math.atan2(g.x, Math.abs(g.y)) * 180 / Math.PI;
+    const pitch = Math.atan2(g.z, Math.hypot(g.x, g.y)) * 180 / Math.PI;
+    tilt = { roll, pitch };
+    const ok = Math.abs(roll) <= LEVEL_TOLERANCE && Math.abs(pitch) <= LEVEL_TOLERANCE;
+    $("level").dataset.ok = ok ? "1" : "0";
+    $("level").innerHTML = `${ok ? "수평 OK" : "똑바로 세워 주세요"}<small>좌우 ${roll.toFixed(1)}° · 앞뒤 ${pitch.toFixed(1)}°</small>`;
+    const now = Date.now();
+    if (now - lastSent > 200) { lastSent = now; send({ type: "tilt", roll, pitch }); }  // 1초에 5번
+  });
+}
+
+/* ===== 서버 연결 ===== */
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws/${code}?role=phone`);
+  ws.onopen = () => setStatus("노트북 기다리는 중", false);
+  ws.onmessage = (e) => handle(JSON.parse(e.data));
+  ws.onclose = (e) => { setStatus("다시 연결 중", false); if (e.code !== 4000) setTimeout(connect, 2000); };
+}
+
+async function handle(msg) {
+  switch (msg.type) {
+    case "peer-joined": await startPeer(); break;
+    case "peer-left": closePeer(); setStatus("노트북 기다리는 중", false); break;
+    case "answer": if (pc) await pc.setRemoteDescription(msg.sdp); break;
+    case "ice": if (pc) { try { await pc.addIceCandidate(msg.candidate); } catch {} } break;
+  }
+}
+
+/* 노트북이 들어오면 폰이 영상 연결을 시작합니다 */
+async function startPeer() {
+  closePeer();
+  setStatus("노트북 연결 중", false);
+  pc = new RTCPeerConnection({ iceServers: ICE });
+  // 해상도를 최대한 유지하도록(측정용이라 선명함이 중요)
+  stream.getVideoTracks().forEach(t => { t.contentHint = "detail"; });
+  stream.getTracks().forEach(t => pc.addTrack(t, stream));
+  pc.onicecandidate = (e) => e.candidate && send({ type: "ice", candidate: e.candidate });
+  pc.onconnectionstatechange = () => {
+    if (!pc) return;
+    if (pc.connectionState === "connected") setStatus("노트북에 송출 중", true);
+    if (pc.connectionState === "failed") setStatus("영상 연결 실패", false);
+  };
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  send({ type: "offer", sdp: pc.localDescription });
+}
+function closePeer() { if (pc) { pc.close(); pc = null; } }
+</script>
+</body>
+</html>

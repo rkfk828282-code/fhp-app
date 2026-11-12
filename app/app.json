@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "거북목 체크",
+    "slug": "neckcheck",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.neckcheck.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.neckcheck.app",
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "옆모습 자세를 촬영해 목 각도(CVA)를 기록하기 위해 카메라를 사용합니다.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "자세를 맞추는 동안 카메라 화면을 노트북으로 보내기 위해 카메라를 사용합니다.",
+          "microphonePermission": "마이크는 사용하지 않습니다."
+        }
+      ],
+      "expo-dev-client"
+    ]
+  }
+}
