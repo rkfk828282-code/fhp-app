@@ -71,7 +71,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
         <video id="sideVideo" autoplay playsinline muted hidden></video>
         <div class="guides" id="sideGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
       </div>
-      <button class="btn primary big shoot" id="sideShoot" type="button" disabled>옆모습 촬영</button>
+      <button class="btn primary big shoot" id="sideShoot" type="button" aria-label="옆모습 촬영" title="옆모습 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
     </section>
 
     <section class="cam" aria-labelledby="frontTitle">
@@ -89,7 +89,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
         <video id="frontVideo" class="mirror" autoplay playsinline muted hidden></video>
         <div class="guides" id="frontGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
       </div>
-      <button class="btn primary big shoot" id="frontShoot" type="button" disabled>정면 촬영</button>
+      <button class="btn primary big shoot" id="frontShoot" type="button" aria-label="정면 촬영" title="정면 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
     </section>
   </div>
 
@@ -103,7 +103,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
           <img id="sidePhoto" alt="찍은 옆모습 사진">
           <svg id="overlay" aria-label="측정점 표시 영역"></svg>
         </div>
-        <div class="shot-empty" id="sideEmpty">옆모습 촬영을 누르면 여기에 사진이 멈춰서 나오고, 귀와 C7을 클릭해 CVA를 재요.</div>
+        <div class="shot-empty" id="sideEmpty">왼쪽 카메라 버튼을 누르면 여기에 사진이 멈춰서 나오고, 귀와 C7을 클릭해 CVA를 재요.</div>
       </div>
       <div class="card" id="resultCard" hidden>
         <div class="result">
@@ -124,7 +124,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
     <section class="shot" aria-label="정면 사진">
       <div class="screen">
         <img id="frontPhoto" alt="찍은 정면 사진" hidden style="display:block;max-width:100%;max-height:62vh">
-        <div class="shot-empty" id="frontEmpty">정면 촬영을 누르면 여기에 사진이 나와요.</div>
+        <div class="shot-empty" id="frontEmpty">오른쪽 카메라 버튼을 누르면 여기에 사진이 나와요.</div>
       </div>
       <div class="card" id="frontCard" hidden>
         <div class="small muted">저장되는 사진은 좌우가 실제 방향이에요. (화면 미리보기는 거울처럼 보여요)</div>
