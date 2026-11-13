@@ -534,6 +534,9 @@ const TIPS = ["모니터 위쪽 끝을 눈높이에 맞춰요", "폰은 눈높�
 function homeScreen() {
   const recs = sorted(), last = recs[recs.length - 1], d = last && describeCVA(last.cva, last.threshold);
   const tip = TIPS[new Date().getDate() % TIPS.length];
+  // 내 목표 박스: 목표까지 남은 각도와 진행 막대 (40°에서 목표까지를 0~100%로)
+  const goalGap = last ? S.goal.cva - last.cva : null;
+  const goalProg = last ? Math.max(0, Math.min(100, (last.cva - 40) / (S.goal.cva - 40) * 100)) : 0;
   $("view").innerHTML = `
     <div class="page-head">
       <span class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="15" cy="6.5" r="3.5"/><path d="M13 10.5 9 17M9 17h8"/></svg></span>
@@ -547,13 +550,14 @@ function homeScreen() {
         <span class="top"><span class="h3">자세 측정</span><span class="desc">옆모습으로 목 각도 재기</span></span>
         <span class="scene">${NECK_ART}</span>
       </button>
+      <button class="tile" type="button" data-go="my">
+        <span class="h3">내 목표</span><span class="desc">CVA ${S.goal.cva}° 이상 목표</span>
+        <span class="tag">${!last ? "측정 전" : goalGap > 0 ? goalGap.toFixed(1) + "° 남음" : "목표 달성!"}</span>
+        <span class="bar" style="width:62%"><i style="width:${goalProg}%"></i></span><span class="art" aria-hidden="true">🎯</span>
+      </button>
       <button class="tile" type="button" data-go="exercise">
         <span class="h3">오늘 운동</span><span class="desc">목 스트레칭 · 타이머</span>
         <span class="tag">${todayDone()} / ${S.goal.daily}회</span><span class="art" aria-hidden="true">⏱️</span>
-      </button>
-      <button class="tile" type="button" data-go="records">
-        <span class="h3">내 기록</span><span class="desc">${last ? "최근 " + last.cva.toFixed(1) + "° · " + d.label : "아직 기록이 없어요"}</span>
-        <span class="tag">기록 ${recs.length}회</span><span class="art" aria-hidden="true">📋</span>
       </button>
     </div>
 
