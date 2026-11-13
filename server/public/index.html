@@ -1285,6 +1285,7 @@ async function handle(msg) {
     }
     case "ice": if (pc) { try { await pc.addIceCandidate(msg.candidate); } catch {} } break;
     case "tilt": lastTilt = msg; renderLevel(); break;
+    case "facing": $("sideState").textContent = msg.facing === "user" ? "실시간 · 전면 카메라" : "실시간 · 후면 카메라"; break;
   }
 }
 function closePeer() { if (pc) { pc.close(); pc = null; } }

@@ -21,6 +21,12 @@ header h1 { color: #fff; font-size: 18px; }
 .start input { font: inherit; font-size: 28px; font-weight: 800; letter-spacing: 0.15em; text-align: center; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
 .msg { color: #c9d3d8; font-size: 13.5px; text-align: center; margin: 0; }
 .err { color: #ffb4a6; }
+/* 전면(셀카) 카메라일 때만 폰 화면을 거울처럼 — 노트북으로 가는 영상은 실제 방향 그대로 */
+.preview video.mirror { transform: scaleX(-1); }
+.flip { position: absolute; right: 12px; bottom: 12px; z-index: 3; display: inline-flex; align-items: center; gap: 6px;
+  background: #000a; color: #fff; border: 1px solid #ffffff55; border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+.flip:disabled { opacity: .5; }
+.facing { position: absolute; left: 12px; bottom: 12px; z-index: 3; background: #000a; color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -42,6 +48,10 @@ header h1 { color: #fff; font-size: 18px; }
     <video id="video" autoplay playsinline muted></video>
     <div class="guides"><div class="v"></div></div>
     <div class="level-wrap"><div class="level" id="level">수평 확인 중</div></div>
+    <span class="facing" id="facingLabel">후면 카메라</span>
+    <button class="flip" id="flipBtn" type="button" aria-label="전면·후면 카메라 바꾸기">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9.5 12.5a3 3 0 0 1 5-1.5l.5.5M14.5 14.5a3 3 0 0 1-5 1.5l-.5-.5"/><path d="M15 9.5v2h-2M9 16.5v-2h2"/></svg>
+      전환</button>
   </div>
   <p class="msg" id="msg" hidden>노트북 화면을 보면서 자세를 맞춰 주세요. 찍기는 노트북에서 눌러요.</p>
 </div>
@@ -52,7 +62,39 @@ const LEVEL_TOLERANCE = 2;
 const $ = (id) => document.getElementById(id);
 $("codeInput").value = (location.hash.slice(1).match(/\d{6}/) || [""])[0];
 
-let ws = null, pc = null, stream = null, code = "";
+let ws = null, pc = null, stream = null, code = "", facing = "environment";
+
+/* 카메라 켜기: environment = 후면, user = 전면(셀카) */
+function openCamera(mode) {
+  return navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
+  });
+}
+function showFacing() {
+  $("video").classList.toggle("mirror", facing === "user");
+  $("facingLabel").textContent = facing === "user" ? "전면 카메라 (화면만 거울처럼)" : "후면 카메라";
+  send({ type: "facing", facing });
+}
+/* 전환: 새 카메라를 켠 뒤, 노트북으로 가는 영상만 바꿔 끼움 (연결은 끊지 않음) */
+async function flipCamera() {
+  const next = facing === "environment" ? "user" : "environment";
+  $("flipBtn").disabled = true;
+  let ns;
+  try { ns = await openCamera(next); }
+  catch { $("flipBtn").disabled = false; showErr("카메라를 바꿀 수 없어요. 이 폰에 다른 카메라가 없거나 권한이 막혀 있어요."); return; }
+  const newTrack = ns.getVideoTracks()[0];
+  newTrack.contentHint = "detail";
+  if (pc) {
+    const sender = pc.getSenders().find((x) => x.track && x.track.kind === "video");
+    if (sender) await sender.replaceTrack(newTrack);
+  }
+  stream.getTracks().forEach((t) => t.stop());
+  stream = ns; facing = next;
+  $("video").srcObject = stream;
+  showFacing();
+  $("flipBtn").disabled = false;
+}
 function setStatus(text, on) { $("statusText").textContent = text; $("status").dataset.on = on ? "1" : "0"; }
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 function showErr(t) { $("err").textContent = t; $("err").hidden = false; }
@@ -66,15 +108,14 @@ $("startBtn").addEventListener("click", async () => {
   try { if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission) await DeviceMotionEvent.requestPermission(); } catch {}
 
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
+    stream = await openCamera(facing);
   } catch (e) {
     showErr("카메라를 켤 수 없어요. 브라우저 설정에서 카메라 권한을 허용한 뒤 다시 눌러 주세요.");
     return;
   }
   $("video").srcObject = stream;
+  $("flipBtn").onclick = flipCamera;
+  showFacing();
   $("startCard").hidden = true; $("preview").hidden = false; $("msg").hidden = false;
   startTilt();
   connect();
@@ -126,7 +167,7 @@ async function startPeer() {
   pc.onicecandidate = (e) => e.candidate && send({ type: "ice", candidate: e.candidate });
   pc.onconnectionstatechange = () => {
     if (!pc) return;
-    if (pc.connectionState === "connected") setStatus("노트북에 송출 중", true);
+    if (pc.connectionState === "connected") { setStatus("노트북에 송출 중", true); send({ type: "facing", facing }); }
     if (pc.connectionState === "failed") setStatus("영상 연결 실패", false);
   };
   const offer = await pc.createOffer();
