@@ -52,6 +52,14 @@
         {
           "color": "#0B9B5A"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "# 노트북 송출(react-native-webrtc): 정식 빌드 압축(R8)에서 빠지지 않게\n-keep class org.webrtc.** { *; }\n-dontwarn org.webrtc.**\n-keep class com.oney.WebRTCModule.** { *; }"
+          }
+        }
       ]
     ],
     "runtimeVersion": {
