@@ -973,8 +973,8 @@ function exerciseScreen() {
   v.innerHTML = `
     ${pageHead("exercise", "자가운동", `<span class="pill ${r.on ? "ok" : "neutral"}">${r.on ? "알림 켜짐" : "알림 꺼짐"}</span>`)}
     <div class="card timer-card">
-      <span class="label">다음 운동까지 · ${r.min}분마다</span>
-      <div class="num" id="nextLeft" style="font-size:52px;line-height:1.05">${r.on ? "--:--" : "꺼짐"}</div>
+      <span class="label" style="text-align:center">다음 운동까지 · ${r.min}분마다</span>
+      <div class="num" id="nextLeft" style="text-align:center;line-height:1.05;${r.on ? "font-size:52px" : "font-size:34px;color:var(--muted);letter-spacing:0.08em"}">${r.on ? "--:--" : "OFF"}</div>
       <div class="chips" role="group" aria-label="알림 간격">${INTERVALS.map((m) => `<button type="button" class="chipsel" data-min="${m}" aria-pressed="${r.min === m}">${m}분</button>`).join("")}</div>
       <div class="ex-ctrl two">
         <button class="btn" type="button" id="remToggle">${r.on ? "알림 끄기" : "알림 켜기"}</button>
