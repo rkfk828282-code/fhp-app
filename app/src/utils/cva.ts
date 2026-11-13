@@ -14,10 +14,9 @@ export function calcCVA(tragus: Point, c7: Point): number {
   return (radians * 180) / Math.PI;
 }
 
-/** 기준값과 비교한 결과 문구 (진단이 아닌 자가 체크용 표현) */
-export function describeCVA(cva: number, threshold: number) {
-  if (cva >= threshold) {
-    return { label: "기준 범위", color: "#2e7d32" };
-  }
-  return { label: "전방머리자세 경향", color: "#c62828" };
+/** 기준값과 비교한 결과 (진단이 아닌 자가 체크용 표현) */
+export function describeCVA(cva: number, threshold: number): { label: string; kind: "ok" | "warn" } {
+  return cva >= threshold
+    ? { label: "기준 범위", kind: "ok" }
+    : { label: "전방머리자세 경향", kind: "warn" };
 }
