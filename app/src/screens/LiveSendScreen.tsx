@@ -1,7 +1,8 @@
 // 실시간 송출 화면: 폰 카메라 화면을 노트북으로 실시간 전송
 // 노트북 화면(public/index.html)과 서버(src/index.ts)는 neckcheck-live 프로젝트에 있어요.
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeepAwake } from "expo-keep-awake";
 import {
   mediaDevices, MediaStream, RTCIceCandidate, RTCPeerConnection,
@@ -9,6 +10,9 @@ import {
 } from "react-native-webrtc";
 import { LevelGuide, useTilt } from "../components/LevelGuide";
 import { SERVER_URL } from "../config";
+import { Button, Text } from "../components/ui";
+import { Icon } from "../components/icons";
+import { colors, fonts } from "../theme";
 
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
 type Status = "idle" | "waiting" | "connecting" | "live" | "failed";
@@ -20,8 +24,9 @@ const STATUS_TEXT: Record<Status, string> = {
   failed: "영상 연결 실패 · 같은 와이파이인지 확인해 주세요",
 };
 
-export default function LiveSendScreen() {
+export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
   useKeepAwake(); // 송출 중에 화면이 꺼지지 않게
+  const insets = useSafeAreaInsets();
   const tilt = useTilt();
   const [code, setCode] = useState("");
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -31,6 +36,9 @@ export default function LiveSendScreen() {
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [facing, setFacing] = useState<"environment" | "user">("environment");
+  const facingRef = useRef<"environment" | "user">("environment");
+  const [flipping, setFlipping] = useState(false);
   const tiltRef = useRef(tilt);
   const activeRef = useRef(false);
   tiltRef.current = tilt;
@@ -68,7 +76,7 @@ export default function LiveSendScreen() {
       if (e.candidate) send({ type: "ice", candidate: e.candidate });
     });
     pc.addEventListener("connectionstatechange", () => {
-      if (pc.connectionState === "connected") setStatus("live");
+      if (pc.connectionState === "connected") { setStatus("live"); send({ type: "facing", facing: facingRef.current }); }
       if (pc.connectionState === "failed") setStatus("failed");
     });
     const offer = await pc.createOffer({});
@@ -103,10 +111,7 @@ export default function LiveSendScreen() {
     if (!/^\d{6}$/.test(c)) { setError("노트북에 나온 6자리 숫자를 입력해 주세요."); return; }
     setError("");
     try {
-      const s = await mediaDevices.getUserMedia({
-        audio: false,
-        video: { facingMode: "environment", width: 1280, height: 720, frameRate: 30 },
-      });
+      const s = await openCamera(facingRef.current);
       streamRef.current = s;
       setStream(s);
     } catch {
@@ -115,6 +120,30 @@ export default function LiveSendScreen() {
     }
     activeRef.current = true;
     connect(c);
+  };
+
+  // 카메라 켜기: environment = 후면, user = 전면(셀카)
+  function openCamera(mode: "environment" | "user") {
+    return mediaDevices.getUserMedia({ audio: false, video: { facingMode: mode, width: 1280, height: 720, frameRate: 30 } });
+  }
+
+  // 전환: 새 카메라를 켠 뒤 노트북으로 가는 영상만 바꿔 끼움 (연결은 유지)
+  const flip = async () => {
+    const next = facingRef.current === "environment" ? "user" : "environment";
+    setFlipping(true);
+    try {
+      const ns = await openCamera(next);
+      const track = ns.getVideoTracks()[0];
+      const sender = pcRef.current?.getSenders().find((x) => x.track && x.track.kind === "video");
+      if (sender) await sender.replaceTrack(track);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = ns; setStream(ns);
+      facingRef.current = next; setFacing(next);
+      send({ type: "facing", facing: next });
+    } catch {
+      setError("카메라를 바꿀 수 없어요.");
+    }
+    setFlipping(false);
   };
 
   function stopAll() {
@@ -130,17 +159,21 @@ export default function LiveSendScreen() {
   // ① 코드 입력
   if (!stream) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.title}>노트북 연결 코드</Text>
-        <TextInput
-          style={styles.codeInput} value={code} onChangeText={setCode}
-          keyboardType="number-pad" maxLength={6} placeholder="000000" placeholderTextColor="#9aa59f"
-        />
-        <Pressable style={styles.primary} onPress={start}>
-          <Text style={styles.primaryText}>카메라 켜고 연결</Text>
+      <View style={[styles.center, { paddingTop: insets.top + 12 }]}>
+        <Pressable onPress={onBack} hitSlop={12} style={{ alignSelf: "flex-start" }}>
+          <Text weight="bold" style={{ color: colors.accent }}>‹ 뒤로</Text>
         </Pressable>
-        <Text style={styles.help}>노트북에서 연결 화면을 열면 6자리 코드가 나와요.</Text>
-        {!!error && <Text style={styles.error}>{error}</Text>}
+        <View style={{ flex: 1, justifyContent: "center", gap: 14 }}>
+          <Text weight="heavy" style={styles.title}>노트북 보면서 촬영</Text>
+          <Text style={styles.help}>노트북에서 {SERVER_URL.replace("https://", "")} 를 열면 6자리 코드가 나와요. 폰과 노트북은 같은 와이파이에 연결해 주세요.</Text>
+          <TextInput
+            style={styles.codeInput} value={code} onChangeText={setCode}
+            keyboardType="number-pad" maxLength={6} placeholder="000000" placeholderTextColor="#9aa59f"
+            accessibilityLabel="노트북 연결 코드 6자리"
+          />
+          <Button kind="primary" big title="카메라 켜고 연결" onPress={start} />
+          {!!error && <Text style={styles.error}>{error}</Text>}
+        </View>
       </View>
     );
   }
@@ -148,13 +181,24 @@ export default function LiveSendScreen() {
   // ② 송출 중
   return (
     <View style={styles.flex}>
-      <RTCView streamURL={stream.toURL()} style={styles.flex} objectFit="cover" />
+      {/* 전면 카메라일 때 폰 화면만 거울처럼 — 노트북으로 가는 영상은 실제 방향 그대로 */}
+      <RTCView streamURL={stream.toURL()} style={styles.flex} objectFit="cover" mirror={facing === "user"} />
+      <View style={[styles.facing, { bottom: insets.bottom + 150 }]}>
+        <Text style={{ color: "#fff", fontSize: 12.5 }}>{facing === "user" ? "전면 카메라 (화면만 거울처럼)" : "후면 카메라"}</Text>
+      </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="전면·후면 카메라 바꾸기" disabled={flipping} onPress={flip}
+        style={[styles.flipBtn, { bottom: insets.bottom + 144, opacity: flipping ? 0.5 : 1 }]}>
+        <Icon name="flip" color="#fff" size={20} width={2} />
+        <Text weight="bold" style={{ color: "#fff", fontSize: 14 }}>전환</Text>
+      </Pressable>
       <View pointerEvents="none" style={styles.vLine} />
-      <View style={styles.topBar}><LevelGuide tilt={tilt} /></View>
-      <View style={styles.bottomBar}>
-        <Text style={[styles.status, status === "live" && { color: "#3fcf89" }]}>● {STATUS_TEXT[status]}</Text>
+      <View style={[styles.topBar, { top: insets.top + 8 }]}><LevelGuide tilt={tilt} /></View>
+      <View style={[styles.bottomBar, { bottom: insets.bottom + 24 }]}>
+        <Text weight="bold" style={[styles.status, status === "live" && { color: "#3fcf89" }]}>● {STATUS_TEXT[status]}</Text>
         <Text style={styles.help2}>노트북 화면을 보며 자세를 맞추고, 찍기는 노트북에서 눌러요.</Text>
-        <Pressable style={styles.secondary} onPress={stop}><Text style={styles.secondaryText}>송출 끝내기</Text></Pressable>
+        <Pressable style={styles.secondary} onPress={() => { stop(); onBack(); }}>
+          <Text weight="bold" style={{ color: "#fff" }}>송출 끝내기</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -162,21 +206,20 @@ export default function LiveSendScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: "black" },
-  center: { flex: 1, justifyContent: "center", padding: 24, gap: 14, backgroundColor: "#f4f6f5" },
-  title: { fontSize: 18, fontWeight: "800", color: "#191f1c" },
+  facing: { position: "absolute", left: 16, backgroundColor: "#000a", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  flipBtn: { position: "absolute", right: 16, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#000a", borderWidth: 1, borderColor: "#ffffff55", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 },
+  center: { flex: 1, padding: 24, backgroundColor: colors.bg },
+  title: { fontSize: 24 },
   codeInput: {
-    fontSize: 30, fontWeight: "800", letterSpacing: 6, textAlign: "center", color: "#191f1c",
-    backgroundColor: "white", borderWidth: 1, borderColor: "#dbe2de", borderRadius: 12, paddingVertical: 12,
+    fontSize: 30, fontFamily: fonts.heavy, letterSpacing: 6, textAlign: "center", color: colors.ink,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingVertical: 12,
   },
-  primary: { backgroundColor: "#0b9b5a", borderRadius: 12, paddingVertical: 16, alignItems: "center" },
-  primaryText: { color: "white", fontSize: 17, fontWeight: "700" },
-  help: { color: "#5e6a64", fontSize: 13, textAlign: "center" },
-  error: { color: "#b8432f", fontSize: 14, textAlign: "center" },
+  help: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  error: { color: colors.warn, fontSize: 14, textAlign: "center" },
   vLine: { position: "absolute", top: 0, bottom: 0, left: "50%", width: 1, backgroundColor: "#ffffff99" },
-  topBar: { position: "absolute", top: 84, left: 0, right: 0, alignItems: "center" },
-  bottomBar: { position: "absolute", bottom: 32, left: 16, right: 16, gap: 8, alignItems: "center" },
-  status: { color: "#c9d3d8", fontSize: 15, fontWeight: "700" },
+  topBar: { position: "absolute", left: 0, right: 0, alignItems: "center" },
+  bottomBar: { position: "absolute", left: 16, right: 16, gap: 8, alignItems: "center" },
+  status: { color: "#c9d3d8", fontSize: 15 },
   help2: { color: "#c9d3d8", fontSize: 12.5, textAlign: "center" },
-  secondary: { backgroundColor: "#ffffff22", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18 },
-  secondaryText: { color: "white", fontWeight: "700" },
+  secondary: { backgroundColor: "#ffffff26", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18 },
 });
