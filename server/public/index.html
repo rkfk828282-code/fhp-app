@@ -179,6 +179,13 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .kv > div + div { border-left: 1px solid var(--line); }
 .kv .muted { font-size: 12px; } .kv b { font-size: 18px; }
 .sc[aria-expanded="true"] { color: var(--ok); }
+.result-hero { flex-direction: row; align-items: center; gap: 18px; }
+.summary-text { margin: 0; font-size: 15px; line-height: 1.75; }
+.summary-text b { color: var(--ink); }
+.thumbs { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.thumb { margin: 0; background: var(--stage); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.thumb img { width: 100%; height: 200px; object-fit: contain; display: block; }
+.thumb figcaption { color: #fff; font-size: 12.5px; padding: 6px 10px; }
 /* 하단 탭 */
 .tabs { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); position: sticky; bottom: 0; }
 .tab { appearance: none; border: 0; background: none; font: inherit; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 52px; justify-content: center; cursor: pointer; }
@@ -409,6 +416,19 @@ a.btn { text-decoration: none; }
     </section>
   </div>
 
+    <!-- 측정 완료: 기록 저장 + 결과 요약 -->
+    <div class="card done-bar">
+      <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:260px"><span class="label">측정 시점</span>
+          <div class="seg" role="group" aria-label="측정 시점">
+            <button type="button" data-dtag="none" aria-pressed="true">일반</button>
+            <button type="button" data-dtag="before" aria-pressed="false">운동 전</button>
+            <button type="button" data-dtag="after" aria-pressed="false">운동 후</button>
+          </div></div>
+        <button class="btn primary big" type="button" id="dualDone" disabled style="min-width:220px">측정 완료</button>
+      </div>
+      <span class="muted" id="dualDoneHint">옆모습 사진에서 귀와 C7을 찍으면 측정 완료를 누를 수 있어요. 누르면 기록에 저장되고 결과 요약이 나와요.</span>
+    </div>
     <p class="notice">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>
   </section>
 
@@ -461,7 +481,7 @@ const ICONS = {
 };
 const TABS = [["home", "홈"], ["measure", "측정"], ["records", "기록"], ["exercise", "운동"], ["my", "MY"]];
 function renderTabs() {
-  const full = S.tab === "measure" && S.route !== "home" && S.route !== "dual";
+  const full = S.tab === "measure" && S.route !== "home" && S.route !== "dual" && S.route !== "summary";
   $("tabs").hidden = full;
   $("tabs").innerHTML = TABS.map(([k, l]) => `<button class="tab" type="button" data-tab="${k}" ${S.tab === k ? 'aria-current="page"' : ""}>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>${l}</button>`).join("");
@@ -485,7 +505,7 @@ function renderNav() {
     `<hr><div class="cap">측정 바로가기</div>` +
     NAV_EXTRA.map(([g, l, d]) => `<button class="nav-item" type="button" data-nav="${g}" ${cur === g ? 'aria-current="page"' : ""}>${svg(d)}${l}</button>`).join("");
   const name = { home: "홈", measure: "측정", records: "기록", exercise: "운동", my: "MY" }[S.tab];
-  const sub = { dual: "두 카메라 촬영", photo: "사진으로 측정", live: "노트북 보면서 촬영", cva: "CVA가 뭐예요?" }[S.route];
+  const sub = { dual: "두 카메라 촬영", photo: "사진으로 측정", live: "노트북 보면서 촬영", cva: "CVA가 뭐예요?", summary: "측정 결과" }[S.route];
   $("where").textContent = "· " + name + (sub ? " › " + sub : "");
 }
 function setDrawer(open) {
@@ -511,8 +531,8 @@ function render() {
   const dual = S.tab === "measure" && S.route === "dual";
   $("dualRoot").hidden = !dual; v.hidden = dual;
   if (dual) { window.initDual && window.initDual(); window.scrollTo(0, 0); return; }
-  v.className = "view" + (S.tab === "measure" && S.route !== "home" && S.route !== "dual" ? " full" : "");
-  if (S.tab === "measure") ({ home: measureHome, photo: photoMeasure, live: liveSend })[S.route]();
+  v.className = "view" + (S.tab === "measure" && S.route !== "home" && S.route !== "dual" && S.route !== "summary" ? " full" : "");
+  if (S.tab === "measure") ({ home: measureHome, photo: photoMeasure, live: liveSend, summary: summaryScreen })[S.route]();
   if (S.tab === "records") recordsScreen();
   if (S.tab === "exercise") exerciseScreen();
   if (S.tab === "home") (S.route === "cva" ? cvaInfo : homeScreen)();
@@ -734,8 +754,7 @@ function photoMeasure() {
         <span class="muted">기준값 ${S.threshold}° · 찍을 때 기울기 좌우 0.4°</span>
         <div style="display:flex;flex-direction:column;gap:6px"><span class="label">측정 시점</span>
           <div class="seg" role="group" aria-label="측정 시점">${Object.keys(TAG_LABEL).map((k) => `<button type="button" data-tag="${k}" aria-pressed="${S.tag === k}">${TAG_LABEL[k]}</button>`).join("")}</div></div>
-        ${S.saved ? `<div class="saved"><b style="color:var(--ok)">기록에 저장했어요</b><button class="btn" type="button" id="toRecords">기록 보기</button></div>`
-          : `<button class="btn primary big" type="button" id="saveBtn" ${cva === null ? "disabled" : ""}>기록 저장</button>`}
+        <button class="btn primary big" type="button" id="doneBtn" ${cva === null ? "disabled" : ""}>측정 완료</button>
         <div class="row"><button class="btn" type="button" id="resetPts">점 다시 찍기</button><button class="btn" type="button" id="retake">다시 촬영</button></div>
       </div>
       <p class="notice" style="margin:0">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>
@@ -744,11 +763,7 @@ function photoMeasure() {
   $("view").querySelectorAll("[data-tag]").forEach((b) => b.onclick = () => { S.tag = b.dataset.tag; S.saved = false; photoMeasure(); });
   $("resetPts").onclick = () => { S.pts = { tragus: null, c7: null }; S.saved = false; photoMeasure(); };
   $("retake").onclick = () => { S.photo = null; S.pts = { tragus: null, c7: null }; S.saved = false; photoMeasure(); };
-  if ($("toRecords")) $("toRecords").onclick = () => go("records");
-  if ($("saveBtn")) $("saveBtn").onclick = () => {
-    S.records.push({ id: Date.now().toString(36), date: new Date().toISOString(), cva: Math.round(cva * 10) / 10, threshold: S.threshold, tag: S.tag });
-    persist(); S.saved = true; photoMeasure();
-  };
+  $("doneBtn").onclick = () => { if (cva !== null) completeMeasure({ cva, tag: S.tag, side: S.photo.src, source: "phone" }); };
   drawOverlay(); bindDrag();
 }
 function setPhoto(src) {
@@ -789,6 +804,82 @@ function bindDrag() {
   svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
 }
 window.addEventListener("resize", () => S.photo && S.route === "photo" && drawOverlay());
+
+/* ===== 측정 완료 → 결과 요약 ===== */
+// 측정을 기록에 저장하고 요약 화면으로 이동 (폰 촬영·두 카메라 촬영 공통)
+function completeMeasure({ cva, tag = "none", roll = null, side = null, front = null, source = "phone" }) {
+  const prev = sorted().filter((r) => !r.example).pop() || null;
+  const rec = { id: Date.now().toString(36), date: new Date().toISOString(), cva: Math.round(cva * 10) / 10, threshold: S.threshold, tag, source };
+  if (roll !== null && roll !== undefined) rec.roll = Math.round(roll * 10) / 10;
+  S.records.push(rec); persist();
+  S.lastSummary = { rec, prev, side, front };
+  go("measure", "summary");
+}
+
+// 숫자를 사람이 읽는 문장으로
+function summarize(rec, prev) {
+  const d = describeCVA(rec.cva, rec.threshold);
+  const th = rec.cva - rec.threshold, gap = S.goal.cva - rec.cva;
+  const s = [];
+  s.push(th >= 0
+    ? `CVA ${rec.cva.toFixed(1)}°로 기준(${rec.threshold}°)보다 ${th.toFixed(1)}° 높아 <b>기준 범위</b>예요.`
+    : `CVA ${rec.cva.toFixed(1)}°로 기준(${rec.threshold}°)보다 ${(-th).toFixed(1)}° 낮아 <b>전방머리자세 경향</b>이 있어요.`);
+  if (prev) {
+    const df = rec.cva - prev.cva, sameTagHint = rec.tag === "after" && prev.tag === "before" ? "운동 전보다" : "지난번보다";
+    s.push(Math.abs(df) < 0.5 ? `${sameTagHint} 거의 같아요(${df >= 0 ? "+" : ""}${df.toFixed(1)}°).`
+      : df > 0 ? `${sameTagHint} <b>${df.toFixed(1)}° 좋아졌어요.</b>` : `${sameTagHint} ${(-df).toFixed(1)}° 낮아졌어요.`);
+  } else s.push("첫 측정이에요. 앞으로 같은 자세로 재면 변화를 볼 수 있어요.");
+  s.push(gap > 0 ? `목표(${S.goal.cva}°)까지 ${gap.toFixed(1)}° 남았어요.` : `목표(${S.goal.cva}°)를 달성했어요!`);
+  const tips = d.kind === "ok"
+    ? ["지금 자세를 유지하도록 50분마다 잠깐씩 목을 풀어 주세요.", "모니터와 폰을 눈높이에 두는 습관을 이어 가세요."]
+    : ["턱 당기기와 가슴 펴기 운동을 하루 몇 번씩 해 보세요.", "모니터 위쪽 끝을 눈높이에 맞추고, 폰은 들어 올려서 봐요.", "운동 후 다시 재서 \"운동 후\"로 저장하면 효과를 비교할 수 있어요."];
+  return { d, th, gap, sentence: s.join(" "), tips };
+}
+
+function summaryScreen() {
+  const sm = S.lastSummary;
+  if (!sm) { go("measure"); return; }
+  const r = sm.rec, prev = sm.prev, { d, th, gap, sentence, tips } = summarize(r, prev);
+  const df = prev ? r.cva - prev.cva : null;
+  const sign = (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + "°";
+  const quality = r.roll === undefined ? "촬영할 때 폰 기울기 정보가 없어요."
+    : Math.abs(r.roll) <= 2 ? `촬영할 때 폰이 수평이었어요 (좌우 ${r.roll.toFixed(1)}°).`
+    : `촬영할 때 폰이 ${Math.abs(r.roll).toFixed(1)}° 기울어 있었어요. 다음엔 수평 표시가 초록일 때 찍어 주세요.`;
+  const thumb = (src, label) => src ? `<figure class="thumb"><img src="${src}" alt="${label} 사진"><figcaption>${label}</figcaption></figure>` : "";
+  $("view").innerHTML = `
+    ${pageHead("measure", "측정 결과", `<span class="muted">${fmt(r.date)}</span>`)}
+    <div class="card result-hero">
+      <span class="num" style="font-size:56px;color:var(--${d.kind});line-height:1">${r.cva.toFixed(1)}°</span>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+        <span class="label">CVA 두개척추각</span><span class="pill ${d.kind}">${d.label}</span>
+        <span class="muted">${TAG_LABEL[r.tag]} · ${r.source === "laptop" ? "노트북 두 카메라" : "폰 촬영"}</span>
+      </div>
+    </div>
+    <div class="card">
+      <b style="font-size:16px">한눈에 요약</b>
+      <p class="summary-text">${sentence}</p>
+      <div class="kv">
+        <div><span class="muted">기준 대비</span><b class="num" style="color:var(--${th >= 0 ? "ok" : "warn"})">${sign(th)}</b></div>
+        <div><span class="muted">지난번 대비</span><b class="num" style="color:${df === null ? "var(--ink)" : df >= 0 ? "var(--ok)" : "var(--warn)"}">${df === null ? "첫 측정" : sign(df)}</b></div>
+        <div><span class="muted">목표까지</span><b class="num">${gap > 0 ? gap.toFixed(1) + "°" : "달성"}</b></div>
+        <div><span class="muted">누적 측정</span><b class="num">${S.records.filter((x) => !x.example).length}회</b></div>
+      </div>
+      <span class="muted">${quality}</span>
+    </div>
+    ${sm.side || sm.front ? `<div class="thumbs">${thumb(sm.side, "옆모습")}${thumb(sm.front, "정면")}</div>` : ""}
+    <div class="card tip"><b style="color:var(--ok)">이렇게 해 보세요</b><ul>${tips.map((t) => `<li>${t}</li>`).join("")}</ul></div>
+    <div class="ex-ctrl two">
+      <button class="btn" type="button" id="smRecords">기록 보기</button>
+      <button class="btn primary" type="button" id="smNext">${d.kind === "warn" ? "목 운동 시작" : "다시 측정"}</button>
+    </div>
+    <p class="notice">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>`;
+  $("smRecords").onclick = () => go("records");
+  $("smNext").onclick = () => {
+    if (d.kind === "warn") { go("exercise"); return; }
+    S.photo = null; S.pts = { tragus: null, c7: null }; S.tag = "none"; S.saved = false;
+    go("measure", r.source === "laptop" ? "dual" : "home");
+  };
+}
 
 /* ===== 노트북 보면서 촬영 (LiveSendScreen) ===== */
 function liveSend() {
@@ -1400,6 +1491,7 @@ function renderMeasure() {
     $("cvaNum").textContent = "--.-°"; $("cvaNum").style.color = "";
     pill.className = "pill neutral"; pill.textContent = "점 2개를 찍으면 계산돼요";
   }
+  $("dualDone").disabled = !(tragus && c7);
 }
 
 
@@ -1407,6 +1499,20 @@ let started = false;
 showSideWaiting();
 // 두 카메라 화면을 처음 열 때만 서버에 연결
 window.initDual = () => { if (started) return; started = true; connect(); };
+
+/* 측정 완료 → 기록 저장 + 요약 화면 */
+let dualTag = "none";
+document.querySelectorAll("[data-dtag]").forEach((b) => b.addEventListener("click", () => {
+  dualTag = b.dataset.dtag;
+  document.querySelectorAll("[data-dtag]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
+$("dualDone").addEventListener("click", () => {
+  if (!(pts.tragus && pts.c7)) return;
+  window.completeMeasure({
+    cva: calcCVA(pts.tragus, pts.c7), tag: dualTag, roll: tiltAtCapture ? tiltAtCapture.roll : null,
+    side: $("sidePhoto").src, front: $("frontShot").hidden ? null : $("frontPhoto").src, source: "laptop",
+  });
+});
 })();
 
 </script>
