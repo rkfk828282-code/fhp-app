@@ -172,6 +172,8 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .article p { margin: 0; font-size: 14.5px; line-height: 1.7; }
 .article ul { margin: 0; padding-left: 18px; font-size: 14.5px; line-height: 1.7; }
 
+.interval { appearance: none; border: 0; background: var(--bg); border-radius: 999px; font: inherit; font-size: 14px; color: var(--ink); padding: 7px 14px; align-self: center; cursor: pointer; }
+.interval b { color: var(--ok); }
 .kv { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding-top: 12px; }
 .kv > div { display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; min-width: 0; }
 .kv > div + div { border-left: 1px solid var(--line); }
@@ -973,12 +975,12 @@ function exerciseScreen() {
   v.innerHTML = `
     ${pageHead("exercise", "자가운동", `<span class="pill ${r.on ? "ok" : "neutral"}">${r.on ? "알림 켜짐" : "알림 꺼짐"}</span>`)}
     <div class="card timer-card">
-      <span class="label" style="text-align:center">다음 운동까지 · ${r.min}분마다</span>
+      <span class="label" style="text-align:center">다음 운동까지</span>
       <div class="num" id="nextLeft" style="text-align:center;line-height:1.05;${r.on ? "font-size:52px" : "font-size:34px;color:var(--muted);letter-spacing:0.08em"}">${r.on ? "--:--" : "OFF"}</div>
-      <div class="chips" role="group" aria-label="알림 간격">${INTERVALS.map((m) => `<button type="button" class="chipsel" data-min="${m}" aria-pressed="${r.min === m}">${m}분</button>`).join("")}</div>
+      <button class="interval" type="button" id="toAlarmSet" aria-label="알림 간격 ${r.min}분, MY에서 바꾸기">⏰ <b>${r.min}분</b>마다 알림 <span class="muted">· MY에서 변경 ›</span></button>
       <div class="ex-ctrl two">
         <button class="btn" type="button" id="remToggle">${r.on ? "알림 끄기" : "알림 켜기"}</button>
-        <button class="btn primary" type="button" id="exStart">지금 운동 시작</button>
+        <button class="btn primary" type="button" id="exStart">시작</button>
       </div>
       <span class="muted">앱에서는 화면을 꺼도 폰 알림으로 알려 줘요. 시제품에서는 이 페이지를 열어 둔 동안만 알려요.</span>
     </div>
@@ -996,10 +998,7 @@ function exerciseScreen() {
       <div style="flex:1;min-width:0"><b>${x.name}</b><div class="muted">${x.how}</div></div><span class="muted" style="flex:none">${x.sec}초</span></div>`).join("")}</div>
     <button class="btn" type="button" id="exBefore">운동 전 측정 먼저 하기</button>
     <p class="notice">통증이 있으면 바로 멈추세요. 운동 목록은 전문가 지도에 맞게 바꿀 수 있어요.</p>`;
-  v.querySelectorAll("[data-min]").forEach((b) => b.onclick = () => {
-    S.reminder.min = +b.dataset.min; if (S.reminder.on) S.reminder.nextAt = Date.now() + S.reminder.min * 60000;
-    alertShown = false; persist(); exerciseScreen();
-  });
+  $("toAlarmSet").onclick = () => { S.myPanel = "alarm"; go("my"); };
   $("remToggle").onclick = () => {
     S.reminder.on = !S.reminder.on; S.reminder.nextAt = S.reminder.on ? Date.now() + S.reminder.min * 60000 : null;
     alertShown = false; persist(); exerciseScreen();
@@ -1038,11 +1037,16 @@ function myScreen() {
   $("view").innerHTML = `
     ${pageHead("my", "MY", '<span class="pill neutral">로그인 준비 중</span>')}
     <div class="shortcuts">
-      <button class="sc" type="button" data-go="exercise"><span class="e" aria-hidden="true">⏰</span>운동 알림</button>
+      <button class="sc" type="button" id="alarmBtn" aria-expanded="${S.myPanel === "alarm"}"><span class="e" aria-hidden="true">⏰</span>운동 알림</button>
       <button class="sc" type="button" data-go="records"><span class="e" aria-hidden="true">📊</span>내 기록</button>
       <button class="sc" type="button" id="dataBtn" aria-expanded="${S.myPanel === "data"}"><span class="e" aria-hidden="true">🗂️</span>데이터</button>
       <button class="sc" type="button" id="infoBtn" aria-expanded="${S.myPanel === "info"}"><span class="e" aria-hidden="true">ℹ️</span>앱 정보</button>
     </div>
+    <div class="card" id="alarmCard" ${S.myPanel === "alarm" ? "" : "hidden"}><b style="font-size:16px">운동 알림</b>
+      <span class="muted">몇 분마다 운동 알림을 받을지 골라요. 운동 탭 타이머에 바로 적용돼요.</span>
+      <div class="chips" role="group" aria-label="알림 간격">${INTERVALS.map((m) => `<button type="button" class="chipsel" data-min="${m}" aria-pressed="${S.reminder.min === m}">${m}분</button>`).join("")}</div>
+      <div class="row" style="justify-content:space-between"><span>알림</span>
+        <button class="btn" type="button" id="alarmToggle" style="min-height:38px">${S.reminder.on ? "켜짐 · 끄기" : "꺼짐 · 켜기"}</button></div></div>
     <div class="card" id="dataCard" ${S.myPanel === "data" ? "" : "hidden"}><b style="font-size:16px">데이터</b>
       <span class="muted">측정 기록 ${S.records.length}개, 운동 기록 ${S.sessions.length}개가 이 폰에 저장되어 있어요.</span>
       ${S.confirmClear ? `<div class="row"><button class="btn" type="button" id="cancelClear">취소</button><button class="btn danger" type="button" id="doClear">모두 지우기</button></div>`
@@ -1084,6 +1088,15 @@ function myScreen() {
   bind("goalDaily", (d) => { S.goal.daily = Math.max(1, Math.min(10, S.goal.daily + d)); persist(); myScreen(); });
   bind("thr", (d) => { S.threshold = Math.max(30, Math.min(70, S.threshold + d)); persist(); myScreen(); });
   $("dataBtn").onclick = () => { S.myPanel = S.myPanel === "data" ? null : "data"; myScreen(); };
+  $("alarmBtn").onclick = () => { S.myPanel = S.myPanel === "alarm" ? null : "alarm"; myScreen(); };
+  v.querySelectorAll("[data-min]").forEach((b) => b.onclick = () => {
+    S.reminder.min = +b.dataset.min; if (S.reminder.on) S.reminder.nextAt = Date.now() + S.reminder.min * 60000;
+    alertShown = false; persist(); myScreen();
+  });
+  $("alarmToggle").onclick = () => {
+    S.reminder.on = !S.reminder.on; S.reminder.nextAt = S.reminder.on ? Date.now() + S.reminder.min * 60000 : null;
+    alertShown = false; persist(); myScreen();
+  };
   $("infoBtn").onclick = () => { S.myPanel = S.myPanel === "info" ? null : "info"; myScreen(); };
   if ($("clearBtn")) $("clearBtn").onclick = () => { S.confirmClear = true; myScreen(); };
   if ($("cancelClear")) $("cancelClear").onclick = () => { S.confirmClear = false; myScreen(); };
