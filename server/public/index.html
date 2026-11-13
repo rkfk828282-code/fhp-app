@@ -172,6 +172,11 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .article p { margin: 0; font-size: 14.5px; line-height: 1.7; }
 .article ul { margin: 0; padding-left: 18px; font-size: 14.5px; line-height: 1.7; }
 
+.kv { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding-top: 12px; }
+.kv > div { display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; min-width: 0; }
+.kv > div + div { border-left: 1px solid var(--line); }
+.kv .muted { font-size: 12px; } .kv b { font-size: 18px; }
+.sc[aria-expanded="true"] { color: var(--ok); }
 /* 하단 탭 */
 .tabs { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); position: sticky; bottom: 0; }
 .tab { appearance: none; border: 0; background: none; font: inherit; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 52px; justify-content: center; cursor: pointer; }
@@ -1032,30 +1037,32 @@ function myScreen() {
   const prog = last ? Math.max(0, Math.min(100, (last.cva - 40) / (S.goal.cva - 40) * 100)) : 0;
   $("view").innerHTML = `
     ${pageHead("my", "MY", '<span class="pill neutral">로그인 준비 중</span>')}
-    <div class="card profile-row">
-      <span class="avatar sm" aria-hidden="true">🙂</span>
-      <div style="flex:1;min-width:0"><b style="font-size:17px">나</b>
-        <div class="muted">${first ? fmt(first.date).split(" ")[0] + "부터 함께하는 중" : "오늘부터 시작해요"}</div></div>
+    <div class="shortcuts">
+      <button class="sc" type="button" data-go="exercise"><span class="e" aria-hidden="true">⏰</span>운동 알림</button>
+      <button class="sc" type="button" data-go="records"><span class="e" aria-hidden="true">📊</span>내 기록</button>
+      <button class="sc" type="button" id="dataBtn" aria-expanded="${S.myPanel === "data"}"><span class="e" aria-hidden="true">🗂️</span>데이터</button>
+      <button class="sc" type="button" id="infoBtn" aria-expanded="${S.myPanel === "info"}"><span class="e" aria-hidden="true">ℹ️</span>앱 정보</button>
     </div>
+    <div class="card" id="dataCard" ${S.myPanel === "data" ? "" : "hidden"}><b style="font-size:16px">데이터</b>
+      <span class="muted">측정 기록 ${S.records.length}개, 운동 기록 ${S.sessions.length}개가 이 폰에 저장되어 있어요.</span>
+      ${S.confirmClear ? `<div class="row"><button class="btn" type="button" id="cancelClear">취소</button><button class="btn danger" type="button" id="doClear">모두 지우기</button></div>`
+        : `<button class="btn danger" type="button" id="clearBtn" ${S.records.length || S.sessions.length ? "" : "disabled"}>기록 모두 지우기</button>`}</div>
+    <div class="card" id="infoCard" ${S.myPanel === "info" ? "" : "hidden"}><b style="font-size:16px">앱 정보</b>
+      <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:15px">버전</span><span>1.0.0</span></div>
+      <div class="row" style="justify-content:space-between;gap:12px"><span class="muted" style="font-size:15px;flex:none">노트북 연동 주소</span><span style="font-size:13px;text-align:right;min-width:0;overflow-wrap:anywhere">${SERVER_URL.replace("https://", "")}</span></div></div>
 
-    <div class="bento">
-      <button class="tile tall goal" type="button" data-go="records">
-        <span class="top"><span class="h3">내 목표</span><span class="desc">CVA ${S.goal.cva}° 이상</span></span>
-        <span class="goal-body">
-          <span class="num" style="font-size:44px;color:var(--accent)">${last ? last.cva.toFixed(1) + "°" : "--.-°"}</span>
-          <span class="muted">${last ? (gap > 0 ? `목표까지 ${gap.toFixed(1)}° 남았어요` : "목표를 달성했어요!") : "측정하면 목표까지 얼마 남았는지 보여요"}</span>
-          <span class="bar"><i style="width:${prog}%"></i></span>
-          <span class="art-lg" aria-hidden="true">🎯</span>
-        </span>
-      </button>
-      <button class="tile" type="button" data-go="exercise">
-        <span class="h3">연속 운동</span><span class="desc">오늘 ${todayDone()} / ${S.goal.daily}회</span>
-        <span class="tag">${streakDays()}일째</span><span class="art" aria-hidden="true">🔥</span>
-      </button>
-      <button class="tile" type="button" data-go="records">
-        <span class="h3">이번 주 측정</span><span class="desc">평균 ${avg !== null ? avg.toFixed(1) + "°" : "–"}</span>
-        <span class="tag">${weekRecs.length}회</span><span class="art" aria-hidden="true">📏</span>
-      </button>
+    <div class="card">
+      <div class="row" style="gap:12px">
+        <span class="avatar sm" aria-hidden="true">🙂</span>
+        <div style="flex:1;min-width:0"><b style="font-size:17px">나</b>
+          <div class="muted">${first ? fmt(first.date).split(" ")[0] + "부터 함께하는 중" : "오늘부터 시작해요"}</div></div>
+      </div>
+      <div class="kv">
+        <div><span class="muted">최근 CVA</span><b class="num">${last ? last.cva.toFixed(1) + "°" : "–"}</b></div>
+        <div><span class="muted">목표까지</span><b class="num">${last ? (gap > 0 ? gap.toFixed(1) + "°" : "달성") : "–"}</b></div>
+        <div><span class="muted">연속 운동</span><b class="num">${streakDays()}일</b></div>
+        <div><span class="muted">이번 주 측정</span><b class="num">${weekRecs.length}회</b></div>
+      </div>
     </div>
 
     <div class="notice-strip" style="background:var(--accent-soft)"><span style="font-size:26px" aria-hidden="true">🏅</span>
@@ -1068,21 +1075,6 @@ function myScreen() {
       ${stepper("하루 운동 목표", "운동 탭 '오늘' 칸에 쓰여요", `${S.goal.daily}회`, "goalDaily")}
       ${stepper("CVA 기준값", "이보다 낮으면 '전방머리자세 경향'", `${S.threshold}°`, "thr")}
     </div>
-
-    <div class="sec-head"><h2>설정</h2></div>
-    <div class="shortcuts">
-      <button class="sc" type="button" data-go="exercise"><span class="e" aria-hidden="true">⏰</span>운동 알림</button>
-      <button class="sc" type="button" data-go="records"><span class="e" aria-hidden="true">📊</span>내 기록</button>
-      <button class="sc" type="button" id="dataBtn"><span class="e" aria-hidden="true">🗂️</span>데이터</button>
-      <button class="sc" type="button" id="infoBtn"><span class="e" aria-hidden="true">ℹ️</span>앱 정보</button>
-    </div>
-    <div class="card" id="dataCard" ${S.myPanel === "data" ? "" : "hidden"}><b style="font-size:16px">데이터</b>
-      <span class="muted">측정 기록 ${S.records.length}개, 운동 기록 ${S.sessions.length}개가 이 폰에 저장되어 있어요.</span>
-      ${S.confirmClear ? `<div class="row"><button class="btn" type="button" id="cancelClear">취소</button><button class="btn danger" type="button" id="doClear">모두 지우기</button></div>`
-        : `<button class="btn danger" type="button" id="clearBtn" ${S.records.length || S.sessions.length ? "" : "disabled"}>기록 모두 지우기</button>`}</div>
-    <div class="card" id="infoCard" ${S.myPanel === "info" ? "" : "hidden"}><b style="font-size:16px">앱 정보</b>
-      <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:15px">버전</span><span>1.0.0</span></div>
-      <div class="row" style="justify-content:space-between;gap:12px"><span class="muted" style="font-size:15px;flex:none">노트북 연동 주소</span><span style="font-size:13px;text-align:right;min-width:0;overflow-wrap:anywhere">${SERVER_URL.replace("https://", "")}</span></div></div>
     <p class="notice">이 앱은 자가 자세 체크와 기록을 돕는 도구이며 질환을 진단하지 않습니다.<br>통증이나 증상이 있으면 전문가와 상담하세요.</p>`;
 
   const v = $("view");
