@@ -302,7 +302,17 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot .monitor { gap: 10px; }
 #dualRoot .mon-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 #dualRoot #monBody { display: flex; flex-direction: column; gap: 10px; }
-#dualRoot #monBody[hidden] { display: none !important; }
+#dualRoot #monBody[hidden], #dualRoot .mon-body[hidden] { display: none !important; }
+#dualRoot .mon-body { display: flex; flex-direction: column; gap: 10px; }
+#dualRoot .mon-overlay.plain { transform: none; }
+#dualRoot .mon-badge.corner { left: 12px; transform: none; } /* 가운데 위는 수평 표시 자리 */
+#dualRoot .learn { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+#dualRoot .learn-btns { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+#dualRoot .learn-btns .btn { padding: 0 10px; }
+#dualRoot .learn-btns .cnt { margin-left: 6px; font-variant-numeric: tabular-nums; }
+#dualRoot .learn-btns .cnt::after { content: "장면"; }
+#dualRoot .learn-btns .btn[data-rec="1"] { background: var(--tragus); border-color: var(--tragus); color: #fff; }
+@media (max-width: 1100px) { #dualRoot .learn-btns { grid-template-columns: 1fr 1fr; } #dualRoot #sideTrain { grid-column: 1 / -1; } }
 #dualRoot .mon-result { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 20px; }
 #dualRoot .mon-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
 #dualRoot .mon-kv { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); padding-top: 10px; }
@@ -371,10 +381,46 @@ a.btn { text-decoration: none; }
         </div>
         <video id="sideVideo" autoplay playsinline muted hidden></video>
         <div class="guides" id="sideGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
+        <!-- 옆모습 거북목 판별 표시 (휴대폰 영상은 거울 아님) -->
+        <svg id="sideMonOverlay" class="mon-overlay plain" preserveAspectRatio="xMidYMid meet" hidden aria-hidden="true"></svg>
+        <div class="mon-badge corner" id="sideMonBadge" hidden></div>
+        <div class="mon-alert" id="sideMonAlert" role="alert" hidden>
+          <b>옆모습에서 거북목 자세가 10초 넘게 이어지고 있어요</b><span>귀가 어깨 위에 오도록 턱을 당기고 등을 펴 보세요.</span>
+          <button type="button" id="sideMonAlertClose" aria-label="경고 닫기">✕</button>
+        </div>
       </div>
       <div class="ctrl">
         <button class="btn primary big" id="sideShoot" type="button" aria-label="옆모습 촬영" title="옆모습 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
         <button class="btn big onoff" id="sideOnOff" type="button" data-state="on" aria-label="휴대폰 카메라 화면 끄기" disabled>OFF</button>
+      </div>
+      <!-- 옆모습 거북목 판별 (논문: 골격 데이터 학습 기반 거북목 판별) -->
+      <div class="card monitor">
+        <div class="mon-head">
+          <div style="min-width:0"><b>옆모습 거북목 판별</b><div class="small muted" id="sideMonHint"></div></div>
+          <button class="mon-switch" id="sideMonOnOff" type="button" aria-pressed="false" disabled><span class="sw">OFF</span></button>
+        </div>
+        <div id="sideMonBody" class="mon-body" hidden>
+          <div class="mon-result" id="sideMonResult"></div>
+          <div class="mon-kv">
+            <div><span class="small muted">귀–어깨 각도</span><b id="sideNumAng">–</b></div>
+            <div><span class="small muted">귀 앞쪽 거리 Γ</span><b id="sideNumGap">–</b></div>
+            <div><span class="small muted">코–목 기울기</span><b id="sideNumTilt">–</b></div>
+          </div>
+          <div class="learn">
+            <div class="row" style="justify-content:space-between"><span class="small" style="font-weight:700">내 자세 학습</span>
+              <span class="small muted" id="sideModelInfo"></span></div>
+            <div class="learn-btns">
+              <button class="btn" id="sideRecGood" type="button">바른 자세 녹화 <span class="small muted cnt" id="sideCntGood">0</span></button>
+              <button class="btn" id="sideRecBad" type="button">거북목 자세 녹화 <span class="small muted cnt" id="sideCntBad">0</span></button>
+              <button class="btn primary" id="sideTrain" type="button" disabled>학습하기</button>
+            </div>
+            <div class="small muted">각 버튼을 누르고 5초 동안 그 자세를 유지해요. 여러 번 녹화하면 더 정확해져요. <button class="link-btn" id="sideClear" type="button">학습 지우기</button></div>
+          </div>
+          <div class="row" style="justify-content:space-between"><span class="small" style="font-weight:700">이번 세션 자세 비율</span>
+            <button class="link-btn" id="sideMonReset" type="button">초기화</button></div>
+          <div id="sideMonStats"></div>
+          <div class="small muted">근거: 김종현(2023), 사람 포즈와 골격 데이터 학습을 이용한 정확한 거북목 자세 판별, 한국컴퓨터정보학회논문지 28(8). 귀–어깨 각도는 어깨를 C7 대신 쓴 값이라 실제 CVA와 달라요. 자가 자세 체크용이며 진단이 아니에요.</div>
+        </div>
       </div>
     </section>
 
@@ -1392,16 +1438,19 @@ function setOnOff(id, live, enabled = true) {
 function showSideWaiting() {
   $("sideWaiting").hidden = false; $("sideOffBox").hidden = true; $("sideVideo").hidden = true; $("sideGuides").hidden = true; $("levelBox").hidden = true;
   $("sideShoot").disabled = true; $("sideState").textContent = "연결 대기";
+  window.dispatchEvent(new Event("side-off"));
   setOnOff("sideOnOff", true, false); // 아직 연결 전이라 끌 것이 없음
 }
 function showSideLive() {
   $("sideWaiting").hidden = true; $("sideOffBox").hidden = true; $("sideVideo").hidden = false; $("sideGuides").hidden = false; $("levelBox").hidden = !lastTilt;
   $("sideShoot").disabled = false; $("sideState").textContent = "실시간";
+  window.dispatchEvent(new Event("side-on"));
   setOnOff("sideOnOff", true);
 }
 function showSideOff() {
   $("sideWaiting").hidden = true; $("sideOffBox").hidden = false; $("sideVideo").hidden = true; $("sideGuides").hidden = true; $("levelBox").hidden = true;
   $("sideShoot").disabled = true; $("sideState").textContent = "꺼짐";
+  window.dispatchEvent(new Event("side-off"));
   setOnOff("sideOnOff", false);
 }
 $("sideOnOff").addEventListener("click", () => {
@@ -1611,5 +1660,6 @@ $("dualDone").addEventListener("click", () => {
 
 </script>
 <script type="module" src="/posture.js"></script>
+<script type="module" src="/side-posture.js"></script>
 </body>
 </html>
