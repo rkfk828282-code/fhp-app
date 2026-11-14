@@ -293,6 +293,12 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot[data-front-shot="off"] .shot[aria-label="정면 사진"] { display: none !important; }
 #dualRoot[data-front-shot="off"] section[aria-labelledby="frontTitle"] .ctrl { grid-template-columns: 1fr; }
 #dualRoot[data-front-shot="off"] .pair.shots { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+/* 휴대폰 사진 찍기도 잠시 숨김: 실시간 화면 두 개 + ON/OFF + 자세 모니터링만 */
+#dualRoot[data-side-shot="off"] #sideShoot,
+#dualRoot[data-side-shot="off"] .section-title,
+#dualRoot[data-side-shot="off"] .pair.shots,
+#dualRoot[data-side-shot="off"] .done-bar { display: none !important; }
+#dualRoot[data-side-shot="off"] section[aria-labelledby="sideTitle"] .ctrl { grid-template-columns: 1fr; }
 #dualRoot .monitor { gap: 10px; }
 #dualRoot .mon-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 #dualRoot #monBody { display: flex; flex-direction: column; gap: 10px; }
@@ -337,8 +343,9 @@ a.btn { text-decoration: none; }
   </aside>
   <main class="view" id="view"></main>
   <!-- ===== 두 카메라 촬영 (측정 바로가기) ===== -->
-  <!-- data-front-shot="off": 웹캠 사진 찍기는 잠시 숨김 (다시 쓰려면 "on"으로) -->
-  <section class="view" id="dualRoot" data-front-shot="off" hidden aria-label="두 카메라 촬영">
+  <!-- 사진 찍기 잠시 숨김 (다시 쓰려면 "on"으로)
+       data-front-shot: 웹캠 사진 / data-side-shot: 휴대폰 사진 + 찍은 사진 칸 + 측정 완료 -->
+  <section class="view" id="dualRoot" data-front-shot="off" data-side-shot="off" hidden aria-label="두 카메라 촬영">
     <div class="page-head"><span class="logo soft" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
       <h1>두 카메라 촬영</h1><span class="side"><span class="status" id="status"><i></i><span id="statusText">연결 준비</span></span>
       <button class="btn" type="button" id="dualBack" style="min-height:36px">측정으로</button></span></div>
