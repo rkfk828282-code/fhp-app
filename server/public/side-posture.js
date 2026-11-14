@@ -174,13 +174,16 @@ function doTrain() {
 
 /* ===== 켜기 / 끄기 ===== */
 function sideOn() { return !$("sideVideo").hidden && !!$("sideVideo").srcObject; }
+let wanted = false; // 사용자가 켜 둠 (휴대폰이 아직 연결 전이면 연결되는 대로 시작)
 function renderToggle() {
-  const b = $("sideMonOnOff");
-  b.setAttribute("aria-pressed", String(running));
-  b.querySelector(".sw").textContent = running ? "ON" : "OFF";
-  b.disabled = !sideOn() && !running;
+  const b = $("sideMonOnOff"), on = wanted || running;
+  b.setAttribute("aria-pressed", String(on));
+  b.querySelector(".sw").textContent = on ? "ON" : "OFF";
+  b.disabled = false;
   $("sideMonBody").hidden = !running;
-  $("sideMonHint").textContent = sideOn() ? "" : "휴대폰 카메라가 연결되면 쓸 수 있어요";
+  $("sideMonHint").textContent = sideOn() ? "" : on
+    ? "휴대폰 카메라가 연결되면 바로 시작해요 (위 QR이나 코드로 연결)"
+    : "휴대폰 카메라를 연결하고 켜 주세요";
   renderLearn();
 }
 async function start() {
@@ -188,19 +191,24 @@ async function start() {
   running = true; renderToggle();
   setResult("자세 판별 준비 중… (처음 한 번 불러오기)", GRAY, "", "준비 중");
   try { await loadModel(); }
-  catch { running = false; renderToggle(); $("sideMonHint").textContent = "자세 판별 모델을 불러오지 못했어요. 새로고침 후 다시 켜 주세요."; return; }
+  catch { running = false; wanted = false; renderToggle(); $("sideMonHint").textContent = "자세 판별 모델을 불러오지 못했어요. 새로고침 후 다시 켜 주세요."; return; }
   if (!running) return;
   $("sideMonOverlay").removeAttribute("hidden");
   lastTick = 0; renderStats(); renderLearn();
   raf = requestAnimationFrame(tick);
 }
-function stop() {
+function stop(keepWanted = false) {
+  if (!keepWanted) wanted = false;
   running = false; cancelAnimationFrame(raf); rec = null; badSince = null;
   $("sideMonOverlay").setAttribute("hidden", ""); $("sideMonOverlay").innerHTML = ""; $("sideMonBadge").hidden = true; $("sideMonAlert").hidden = true;
   renderToggle();
 }
 
-$("sideMonOnOff").addEventListener("click", () => (running ? stop() : start()));
+$("sideMonOnOff").addEventListener("click", () => {
+  if (wanted || running) { stop(); return; }
+  wanted = true; renderToggle();
+  if (sideOn()) start(); else loadModel().catch(() => {}); // 기다리는 동안 모델 미리 불러오기
+});
 $("sideRecGood").addEventListener("click", () => { rec = { kind: "good", until: performance.now() + REC_MS }; renderLearn(); });
 $("sideRecBad").addEventListener("click", () => { rec = { kind: "bad", until: performance.now() + REC_MS }; renderLearn(); });
 $("sideTrain").addEventListener("click", doTrain);
@@ -212,8 +220,9 @@ $("sideClear").addEventListener("click", () => {
 $("sideMonReset").addEventListener("click", () => { stats.good = stats.bad = 0; renderStats(); });
 $("sideMonAlertClose").addEventListener("click", () => { $("sideMonAlert").hidden = true; });
 
-window.addEventListener("side-on", renderToggle);
-window.addEventListener("side-off", stop);
+window.addEventListener("side-on", () => { renderToggle(); if (wanted) start(); });
+window.addEventListener("side-off", () => stop(true)); // 휴대폰이 끊겨도 켜 둔 상태는 유지 → 다시 연결되면 이어서
+
 renderToggle();
 
 // 테스트용 (콘솔에서 확인)
