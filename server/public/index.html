@@ -224,6 +224,13 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 30; max-width: 90%; }
 
+/* ===== 자세 모니터링 ===== */
+.mon-switch { appearance: none; border: 0; cursor: pointer; padding: 0; background: none; flex: none; }
+.mon-switch .sw { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; height: 34px; border-radius: 999px; font: inherit; font-weight: 800; letter-spacing: .05em; background: var(--line); color: var(--muted); }
+.mon-switch[aria-pressed="true"] .sw { background: var(--accent); color: #fff; }
+.mon-switch:disabled { cursor: default; opacity: .5; }
+.mon-switch:focus-visible { outline: 3px solid var(--tragus); outline-offset: 2px; border-radius: 999px; }
+.link-btn { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; padding: 4px; }
 /* ===== 두 카메라 촬영 (노트북) ===== */
 #dualRoot .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 @media (max-width: 900px) { #dualRoot .pair { grid-template-columns: 1fr; } }
@@ -280,7 +287,30 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot .level[data-ok="1"] { background: #0b9b5acc; }
 #dualRoot .level small { display: block; font-weight: 500; font-size: 12px; }
 #dualRoot .section-title { margin-top: 10px; }
-#dualRoot .pair.shots { scroll-margin-top: 76px; } /* 위쪽 막대에 가리지 않게 */
+#dualRoot .pair.shots { scroll-margin-top: 76px; }
+#dualRoot .monitor { gap: 10px; }
+#dualRoot .mon-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#dualRoot #monBody { display: flex; flex-direction: column; gap: 10px; }
+#dualRoot #monBody[hidden] { display: none !important; }
+#dualRoot .mon-result { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 20px; }
+#dualRoot .mon-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+#dualRoot .mon-kv { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); padding-top: 10px; }
+#dualRoot .mon-kv > div { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+#dualRoot .mon-kv > div + div { border-left: 1px solid var(--line); }
+#dualRoot .mon-kv b { font-variant-numeric: tabular-nums; font-size: 16px; }
+#dualRoot .mon-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+#dualRoot .mon-bar i { display: block; height: 100%; }
+#dualRoot .mon-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; margin-top: 6px; }
+#dualRoot .mon-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+#dualRoot .mon-th summary { cursor: pointer; font-size: 13px; font-weight: 700; }
+#dualRoot .th-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+#dualRoot .th-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+#dualRoot .th-grid input { font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); width: 100%; }
+#dualRoot .mon-overlay { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
+#dualRoot .mon-badge { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3; color: #fff; font-weight: 800; font-size: 15px; padding: 6px 14px; border-radius: 999px; box-shadow: 0 2px 10px #0004; }
+#dualRoot .mon-alert { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 3; background: #B8432Fee; color: #fff; border-radius: 12px; padding: 10px 40px 10px 14px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+#dualRoot .mon-alert b { font-size: 14.5px; }
+#dualRoot .mon-alert button { position: absolute; top: 6px; right: 8px; appearance: none; border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; padding: 4px; } /* 위쪽 막대에 가리지 않게 */
 #dualRoot { display: flex; flex-direction: column; gap: 16px; }
 #dualRoot[hidden] { display: none !important; }
 a.btn { text-decoration: none; }
@@ -349,10 +379,50 @@ a.btn { text-decoration: none; }
         </div>
         <video id="frontVideo" class="mirror" autoplay playsinline muted hidden></video>
         <div class="guides" id="frontGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
+        <!-- 자세 모니터링 표시 (영상과 같이 거울처럼) -->
+        <svg id="monOverlay" class="mon-overlay" preserveAspectRatio="xMidYMid meet" hidden aria-hidden="true"></svg>
+        <div class="mon-badge" id="monBadge" hidden></div>
+        <div class="mon-alert" id="monAlert" role="alert" hidden>
+          <b>거북목 자세가 10초 넘게 이어지고 있어요</b><span>턱을 살짝 당기고 화면에서 조금 떨어져 앉아 보세요.</span>
+          <button type="button" id="monAlertClose" aria-label="경고 닫기">✕</button>
+        </div>
       </div>
       <div class="ctrl">
         <button class="btn primary big" id="frontShoot" type="button" aria-label="정면 촬영" title="정면 촬영" disabled><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
         <button class="btn big onoff" id="frontOnOff" type="button" data-state="off" aria-label="웹캠 켜기">ON</button>
+      </div>
+      <!-- 자세 모니터링 (논문: 정면 웹캠 실시간 거북목 검출) -->
+      <div class="card monitor">
+        <div class="mon-head">
+          <div style="min-width:0"><b>자세 모니터링</b><div class="small muted" id="monHint"></div></div>
+          <button class="mon-switch" id="monOnOff" type="button" aria-pressed="false" disabled><span class="sw">OFF</span></button>
+        </div>
+        <div id="monBody" hidden>
+          <div class="mon-result" id="monResult"></div>
+          <div class="row" style="gap:8px">
+            <button class="btn" id="monCalib" type="button" style="flex:none">기준 자세 저장</button>
+            <span class="small muted" id="monCalibInfo"></span>
+          </div>
+          <div class="mon-kv">
+            <div><span class="small muted">얼굴 면적 ΔS</span><b id="monNumS">–</b></div>
+            <div><span class="small muted">왼 어깨 ΔY / ΔX</span><b id="monNumL">–</b></div>
+            <div><span class="small muted">오른 어깨 ΔY / ΔX</span><b id="monNumR">–</b></div>
+          </div>
+          <div class="row" style="justify-content:space-between"><span class="small" style="font-weight:700">이번 세션 자세 비율</span>
+            <button class="link-btn" id="monReset" type="button">초기화</button></div>
+          <div id="monStats"></div>
+          <details class="mon-th">
+            <summary>판별 기준 조정</summary>
+            <div class="th-grid">
+              <label>얼굴 면적 변화 (%) <input id="thArea" type="number" step="1"></label>
+              <label>어깨 수직 변위 <input id="thVer" type="number" step="1"></label>
+              <label>어깨 수평 변위 <input id="thHor" type="number" step="1"></label>
+            </div>
+            <div class="small muted">기본값은 논문 값(10%, −11, 15)이에요. 어깨 값은 FHD(1920px) 기준이라 웹캠 화면 크기에 맞춰 자동으로 비례 조정돼요.</div>
+            <button class="link-btn" id="thReset" type="button">기본값으로</button>
+          </details>
+          <div class="small muted">근거: 최홍석·김종남(2026), 실시간 거북목 증후군 검출 시스템, 융합신호처리학회논문지 27(4). 자가 자세 체크용이며 진단이 아니에요.</div>
+        </div>
       </div>
     </section>
   </div>
@@ -450,17 +520,17 @@ function exampleRecords() {
   return vals.map((v, i) => ({ id: "ex" + i, date: new Date(base + i * 2.7 * 864e5).toISOString(), cva: v, threshold: 50, tag: i === 6 ? "before" : i === 7 ? "after" : "none", example: true }));
 }
 function load() {
-  const base = { records: [], threshold: 50, sessions: [], goal: { cva: 52, daily: 3 }, reminder: { on: false, min: 50, nextAt: null } };
+  const base = { records: [], threshold: 50, sessions: [], goal: { cva: 52, daily: 3 }, reminder: { on: false, min: 50, nextAt: null }, monitorAuto: false };
   try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && Array.isArray(v.records)) return { ...base, ...v, goal: { ...base.goal, ...(v.goal || {}) }, reminder: { ...base.reminder, ...(v.reminder || {}) } }; } catch {}
   return base;
 }
-function persist() { try { localStorage.setItem(KEY, JSON.stringify({ records: S.records, threshold: S.threshold, sessions: S.sessions, goal: S.goal, reminder: S.reminder })); } catch {} }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify({ records: S.records, threshold: S.threshold, sessions: S.sessions, goal: S.goal, reminder: S.reminder, monitorAuto: S.monitorAuto })); } catch {} }
 
 const saved = load();
 const S = {
   tab: "home", route: "home",        // 측정 탭 안: home | photo | live
   records: saved.records, threshold: saved.threshold,
-  sessions: saved.sessions, goal: saved.goal, reminder: saved.reminder, myPanel: null,
+  sessions: saved.sessions, goal: saved.goal, reminder: saved.reminder, myPanel: null, monitorAuto: !!saved.monitorAuto,
   photo: null, pts: { tragus: null, c7: null }, tag: "none", saved: false, confirmClear: false,
 };
 const $ = (id) => document.getElementById(id);
@@ -1170,6 +1240,13 @@ function myScreen() {
       ${stepper("하루 운동 목표", "운동 탭 '오늘' 칸에 쓰여요", `${S.goal.daily}회`, "goalDaily")}
       ${stepper("CVA 기준값", "이보다 낮으면 '전방머리자세 경향'", `${S.threshold}°`, "thr")}
     </div>
+
+    <div class="sec-head"><h2>노트북 자세 모니터링</h2></div>
+    <div class="card">
+      <div class="row" style="gap:12px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><div>항상 켜기</div>
+        <div class="muted">켜 두면 두 카메라 촬영에서 웹캠을 켤 때 자세 모니터링이 자동으로 시작돼요.</div></div>
+        <button class="mon-switch" type="button" id="monAutoBtn" aria-pressed="${S.monitorAuto}"><span class="sw">${S.monitorAuto ? "ON" : "OFF"}</span></button></div>
+    </div>
     <p class="notice">이 앱은 자가 자세 체크와 기록을 돕는 도구이며 질환을 진단하지 않습니다.<br>통증이나 증상이 있으면 전문가와 상담하세요.</p>`;
 
   const v = $("view");
@@ -1178,6 +1255,7 @@ function myScreen() {
   bind("goalCva", (d) => { S.goal.cva = Math.max(40, Math.min(65, S.goal.cva + d)); persist(); myScreen(); });
   bind("goalDaily", (d) => { S.goal.daily = Math.max(1, Math.min(10, S.goal.daily + d)); persist(); myScreen(); });
   bind("thr", (d) => { S.threshold = Math.max(30, Math.min(70, S.threshold + d)); persist(); myScreen(); });
+  $("monAutoBtn").onclick = () => { S.monitorAuto = !S.monitorAuto; persist(); myScreen(); };
   $("dataBtn").onclick = () => { S.myPanel = S.myPanel === "data" ? null : "data"; myScreen(); };
   $("alarmBtn").onclick = () => { S.myPanel = S.myPanel === "alarm" ? null : "alarm"; myScreen(); };
   v.querySelectorAll("[data-min]").forEach((b) => b.onclick = () => {
@@ -1343,6 +1421,7 @@ function showFrontOff() {
   $("frontWaiting").hidden = false; $("frontVideo").hidden = true; $("frontGuides").hidden = true;
   $("frontShoot").disabled = true; $("frontState").textContent = "꺼짐";
   setOnOff("frontOnOff", false);
+  window.dispatchEvent(new Event("webcam-off"));
 }
 function frontOff() {
   if (frontStream) { frontStream.getTracks().forEach((t) => t.stop()); frontStream = null; }
@@ -1362,6 +1441,7 @@ async function frontOn() {
   $("frontWaiting").hidden = true; $("frontVideo").hidden = false; $("frontGuides").hidden = false;
   $("frontShoot").disabled = false; $("frontState").textContent = "실시간";
   setOnOff("frontOnOff", true);
+  window.dispatchEvent(new Event("webcam-on"));
   frontStream.getVideoTracks()[0].addEventListener("ended", () => { frontStream = null; showFrontOff(); });
 }
 
@@ -1517,5 +1597,6 @@ $("dualDone").addEventListener("click", () => {
 })();
 
 </script>
+<script type="module" src="/posture.js"></script>
 </body>
 </html>
