@@ -191,14 +191,14 @@ async function start() {
   try { await loadModels(); }
   catch { running = false; renderToggle(); $("monHint").textContent = "자세 판별 모델을 불러오지 못했어요. 새로고침 후 다시 켜 주세요."; return; }
   if (!running) return;
-  $("monOverlay").hidden = false;
+  $("monOverlay").removeAttribute("hidden");
   lastTick = 0; renderStats();
   $("monCalibInfo").textContent = calib ? `저장된 기준 자세 사용 중 (${new Date(calib.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })})` : "";
   raf = requestAnimationFrame(tick);
 }
 function stop() {
   running = false; cancelAnimationFrame(raf); calibrating = null; neckSince = null;
-  $("monOverlay").hidden = true; $("monOverlay").innerHTML = ""; $("monBadge").hidden = true; $("monAlert").hidden = true;
+  $("monOverlay").setAttribute("hidden", ""); $("monOverlay").innerHTML = ""; $("monBadge").hidden = true; $("monAlert").hidden = true;
   renderToggle();
 }
 
