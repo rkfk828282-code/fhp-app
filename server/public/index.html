@@ -231,7 +231,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .mon-switch:disabled { cursor: default; opacity: .5; }
 .mon-switch:focus-visible { outline: 3px solid var(--tragus); outline-offset: 2px; border-radius: 999px; }
 .link-btn { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; padding: 4px; }
-/* ===== 두 카메라 촬영 (노트북) ===== */
+/* ===== 실시간 자세 측정 (노트북) ===== */
 #dualRoot .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 @media (max-width: 900px) { #dualRoot .pair { grid-template-columns: 1fr; } }
 
@@ -342,12 +342,12 @@ a.btn { text-decoration: none; }
     <div id="navList"></div>
   </aside>
   <main class="view" id="view"></main>
-  <!-- ===== 두 카메라 촬영 (측정 바로가기) ===== -->
+  <!-- ===== 실시간 자세 측정 (측정 바로가기) ===== -->
   <!-- 사진 찍기 잠시 숨김 (다시 쓰려면 "on"으로)
        data-front-shot: 웹캠 사진 / data-side-shot: 휴대폰 사진 + 찍은 사진 칸 + 측정 완료 -->
-  <section class="view" id="dualRoot" data-front-shot="off" data-side-shot="off" hidden aria-label="두 카메라 촬영">
+  <section class="view" id="dualRoot" data-front-shot="off" data-side-shot="off" hidden aria-label="실시간 자세 측정">
     <div class="page-head"><span class="logo soft" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
-      <h1>두 카메라 촬영</h1><span class="side"><span class="status" id="status"><i></i><span id="statusText">연결 준비</span></span>
+      <h1>실시간 자세 측정</h1><span class="side"><span class="status" id="status"><i></i><span id="statusText">연결 준비</span></span>
       <button class="btn" type="button" id="dualBack" style="min-height:36px">측정으로</button></span></div>
   <!-- 실시간 화면 두 개 -->
   <div class="pair">
@@ -577,7 +577,7 @@ function pageHead(tab, title, right = "") {
 }
 function go(tab, route = "home") { S.tab = tab; S.route = route; render(); }
 const isWide = () => matchMedia("(min-width: 900px)").matches;
-const NAV_EXTRA = [["measure,dual", "두 카메라 촬영", '<rect x="2" y="5" width="13" height="10" rx="1.5"/><path d="M1 18h15"/><rect x="17" y="8" width="6" height="11" rx="1.2"/>'],
+const NAV_EXTRA = [["measure,dual", "실시간 자세 측정", '<rect x="2" y="5" width="13" height="10" rx="1.5"/><path d="M1 18h15"/><rect x="17" y="8" width="6" height="11" rx="1.2"/>'],
                    ["measure,photo", "사진으로 측정", '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M20 15l-5-5-9 10"/>'],
                    ["home,cva", "CVA가 뭐예요?", '<path d="M4 20h16M4 20V8l12 12"/><path d="M8 20a4 4 0 0 0-4-4"/>']];
 function renderNav() {
@@ -588,7 +588,7 @@ function renderNav() {
     `<hr><div class="cap">측정 바로가기</div>` +
     NAV_EXTRA.map(([g, l, d]) => `<button class="nav-item" type="button" data-nav="${g}" ${cur === g ? 'aria-current="page"' : ""}>${svg(d)}${l}</button>`).join("");
   const name = { home: "홈", measure: "측정", records: "기록", exercise: "운동", my: "MY" }[S.tab];
-  const sub = { dual: "두 카메라 촬영", photo: "사진으로 측정", live: "노트북 보면서 촬영", cva: "CVA가 뭐예요?", summary: "측정 결과" }[S.route];
+  const sub = { dual: "실시간 자세 측정", photo: "사진으로 측정", live: "노트북 보면서 촬영", cva: "CVA가 뭐예요?", summary: "측정 결과" }[S.route];
   $("where").textContent = "· " + name + (sub ? " › " + sub : "");
 }
 function setDrawer(open) {
@@ -683,7 +683,7 @@ function homeScreen() {
     <div class="sec-head"><h2>바로가기</h2><button class="chipbtn" type="button">편집</button></div>
     <div class="shortcuts">
       <button class="sc" type="button" data-go="measure,photo"><span class="e" aria-hidden="true">📸</span>폰 촬영</button>
-      <button class="sc" type="button" data-go="${isWide() ? "measure,dual" : "measure,live"}"><span class="e" aria-hidden="true">💻</span>${isWide() ? "두 카메라 촬영" : "노트북 촬영"}</button>
+      <button class="sc" type="button" data-go="${isWide() ? "measure,dual" : "measure,live"}"><span class="e" aria-hidden="true">💻</span>${isWide() ? "실시간 자세 측정" : "노트북 촬영"}</button>
       <button class="sc" type="button" data-go="exercise"><span class="e" aria-hidden="true">🧘</span>스트레칭<span class="new"></span></button>
       <button class="sc" type="button" data-go="records"><span class="e" aria-hidden="true">📊</span>주간 리포트</button>
     </div>
@@ -778,7 +778,7 @@ function measureHome() {
     <button class="option" type="button" data-go="photo">${ic('<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><circle cx="12" cy="9" r="2.5"/>')}
       <span style="flex:1"><b>폰으로 찍어서 측정</b><br><span class="muted">다른 사람이 옆에서 찍어 줄 때. 폰 화면에서 귀와 C7을 탭해요.</span></span><span class="chev">›</span></button>
     ${isWide() ? `<button class="option" type="button" data-go="dual">${ic('<rect x="2.5" y="5" width="13" height="10" rx="1.5"/><path d="M1 18h16"/><rect x="17.5" y="8" width="5" height="11" rx="1.2"/>')}
-      <span style="flex:1"><b>두 카메라 촬영</b> <span class="pill ok" style="font-size:11px;padding:1px 7px">노트북</span><br><span class="muted">폰 카메라(옆모습)와 웹캠(정면)을 나란히 보며 찍어요.</span></span><span class="chev">›</span></button>`
+      <span style="flex:1"><b>실시간 자세 측정</b> <span class="pill ok" style="font-size:11px;padding:1px 7px">노트북</span><br><span class="muted">폰 카메라(옆모습)와 웹캠(정면)을 나란히 보며 자세를 실시간으로 확인해요.</span></span><span class="chev">›</span></button>`
     : `<button class="option" type="button" data-go="live">${ic('<rect x="2.5" y="5" width="13" height="10" rx="1.5"/><path d="M1 18h16"/><rect x="17.5" y="8" width="5" height="11" rx="1.2"/>')}
       <span style="flex:1"><b>노트북 보면서 촬영</b><br><span class="muted">폰을 세워 두고 혼자 잴 때. 폰 카메라 화면이 노트북에 실시간으로 떠요.</span></span><span class="chev">›</span></button>`}
     <div class="card tip">
@@ -889,7 +889,7 @@ function bindDrag() {
 window.addEventListener("resize", () => S.photo && S.route === "photo" && drawOverlay());
 
 /* ===== 측정 완료 → 결과 요약 ===== */
-// 측정을 기록에 저장하고 요약 화면으로 이동 (폰 촬영·두 카메라 촬영 공통)
+// 측정을 기록에 저장하고 요약 화면으로 이동 (폰 촬영·실시간 자세 측정 공통)
 function completeMeasure({ cva, tag = "none", roll = null, side = null, front = null, source = "phone" }) {
   const prev = sorted().filter((r) => !r.example).pop() || null;
   const rec = { id: Date.now().toString(36), date: new Date().toISOString(), cva: Math.round(cva * 10) / 10, threshold: S.threshold, tag, source };
@@ -1257,7 +1257,7 @@ function myScreen() {
     <div class="sec-head"><h2>노트북 자세 모니터링</h2></div>
     <div class="card">
       <div class="row" style="gap:12px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><div>항상 켜기</div>
-        <div class="muted">켜 두면 두 카메라 촬영에서 웹캠을 켤 때 자세 모니터링이 자동으로 시작돼요.</div></div>
+        <div class="muted">켜 두면 실시간 자세 측정 화면에서 웹캠을 켤 때 자세 모니터링이 자동으로 시작돼요.</div></div>
         <button class="mon-switch" type="button" id="monAutoBtn" aria-pressed="${S.monitorAuto}"><span class="sw">${S.monitorAuto ? "ON" : "OFF"}</span></button></div>
     </div>
     <p class="notice">이 앱은 자가 자세 체크와 기록을 돕는 도구이며 질환을 진단하지 않습니다.<br>통증이나 증상이 있으면 전문가와 상담하세요.</p>`;
@@ -1313,7 +1313,7 @@ render();
 document.getElementById("dualBack").addEventListener("click", () => go("measure"));
 </script>
 <script>
-/* ===== 두 카메라 촬영 (실제 기능): 휴대폰 카메라 + 노트북 웹캠 ===== */
+/* ===== 실시간 자세 측정 (실제 기능): 휴대폰 카메라 + 노트북 웹캠 ===== */
 (() => {
 /* ===== CVA 계산 (앱의 src/utils/cva.ts와 같음) ===== */
 function calcCVA(tragus, c7) {
