@@ -4,12 +4,12 @@
 // 자가 자세 체크용이며 진단이 아닙니다.
 import { FilesetResolver, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
 import { features, jitter, pickPoints, predict, readout, train } from "/side-model.js";
+import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
 
 const $ = (id) => document.getElementById(id);
 const GOOD = { t: "바른 자세", c: "#0B9B5A" }, BAD = { t: "거북목", c: "#B8432F" }, GRAY = "#5E6A64";
 const REC_MS = 5000; // 한 번 녹화 5초
 const AUG_TOTAL = 400; // 지터로 늘린 학습 데이터 수 (논문 값)
-const ALERT_MS = 10000, REALERT_MS = 30000;
 const K_SAMPLES = "neck.side.samples", K_MODEL = "neck.side.model";
 
 const store = {
@@ -25,7 +25,7 @@ let model = store.get(K_MODEL, null); // { net, valAcc, trainAcc, n, at }
 let rec = null; // { kind, until }
 const recent = [];
 const stats = { good: 0, bad: 0 };
-let badSince = null, lastAlert = 0;
+const neck = neckTimer($("sideMonAlert"), "귀가 어깨 위에 오도록 턱을 당기고 등을 펴 보세요."); // 5분 넘게 이어지면 알림
 
 async function loadModel() {
   if (pose) return;
@@ -86,12 +86,6 @@ function draw(W, H, pts, color) {
     g += `<circle cx="${p.x}" cy="${p.y}" r="${r * s}" fill="${c}" stroke="#000" stroke-width="${1.5 * s}"/>`;
   svg.innerHTML = g;
 }
-function beep() {
-  try {
-    const a = beep.ctx || (beep.ctx = new (window.AudioContext || window.webkitAudioContext)());
-    [0, 0.22].forEach((t) => { const o = a.createOscillator(), gn = a.createGain(); o.frequency.value = 660; gn.gain.value = 0.1; o.connect(gn); gn.connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + 0.15); });
-  } catch {}
-}
 
 /* ===== 반복 ===== */
 function tick() {
@@ -109,7 +103,7 @@ function tick() {
   const lm = res.landmarks && res.landmarks[0];
   const picked = lm && pickPoints(lm, W, H);
   if (!picked || !picked.ok) {
-    draw(W, H, null); setNums(null); badSince = null; $("sideMonAlert").hidden = true;
+    draw(W, H, null); setNums(null); neck.update(false, now);
     setResult("옆모습에서 귀와 어깨가 보이게 해 주세요", GRAY, "휴대폰을 어깨 높이 옆쪽에 두고 상체가 나오게", "인식 안 됨");
     return;
   }
@@ -141,14 +135,12 @@ function tick() {
   const label = nBad > recent.length / 2 ? "bad" : "good"; // 최근 장면 다수결 (깜빡임 줄이기)
   const k = label === "bad" ? BAD : GOOD;
   stats[label] += dt;
-  setResult(k.t, k.c, `거북목 확률 ${Math.round(p * 100)}%`);
+  const held = label === "bad" ? neck.elapsed(now) : 0;
+  setResult(k.t, k.c, `거북목 확률 ${Math.round(p * 100)}%${held >= 60000 ? ` · ${fmtMin(held)}째` : ""}`);
   draw(W, H, pts, k.c);
   if (Math.round(now / 1000) !== Math.round((now - dt) / 1000)) renderStats();
 
-  if (label === "bad") {
-    badSince = badSince ?? now;
-    if (now - badSince >= ALERT_MS && now - lastAlert >= REALERT_MS) { lastAlert = now; beep(); $("sideMonAlert").hidden = false; }
-  } else { badSince = null; $("sideMonAlert").hidden = true; }
+  neck.update(label === "bad", now); // 5분 넘게 이어지면 알림
 }
 
 /* ===== 학습 ===== */
@@ -199,14 +191,14 @@ async function start() {
 }
 function stop(keepWanted = false) {
   if (!keepWanted) wanted = false;
-  running = false; cancelAnimationFrame(raf); rec = null; badSince = null;
+  running = false; cancelAnimationFrame(raf); rec = null; neck.reset();
   $("sideMonOverlay").setAttribute("hidden", ""); $("sideMonOverlay").innerHTML = ""; $("sideMonBadge").hidden = true; $("sideMonAlert").hidden = true;
   renderToggle();
 }
 
 $("sideMonOnOff").addEventListener("click", () => {
   if (wanted || running) { stop(); return; }
-  wanted = true; renderToggle();
+  wanted = true; askNotify(); renderToggle();
   if (sideOn()) start(); else loadModel().catch(() => {}); // 기다리는 동안 모델 미리 불러오기
 });
 $("sideRecGood").addEventListener("click", () => { rec = { kind: "good", until: performance.now() + REC_MS }; renderLearn(); });
