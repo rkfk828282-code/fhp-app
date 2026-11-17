@@ -924,30 +924,29 @@ function cvaInfo() {
 
 /* ===== 측정 첫 화면 (MeasureHomeScreen) ===== */
 function measureHome() {
-  const recs = sorted(), last = recs[recs.length - 1], d = last && describeCVA(last.cva, last.threshold);
-  const ic = (shape) => `<span class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shape}</svg></span>`;
+  const recs = sorted(), last = recs[recs.length - 1], prev = recs[recs.length - 2] || null;
   $("view").innerHTML = `
     ${pageHead("measure", "측정")}
-    <div class="card">
-      <span class="label">최근 측정</span>
-      ${last ? `<div class="row" style="gap:16px">
-          <span class="num" style="font-size:44px;color:var(--${d.kind})">${last.cva.toFixed(1)}°</span>
-          <div style="display:flex;flex-direction:column;gap:4px"><span class="pill ${d.kind}">${d.label}</span>
-          <span class="muted">${fmt(last.date)}${last.tag !== "none" ? " · " + TAG_LABEL[last.tag] : ""}</span></div></div>`
-        : `<span class="muted">아직 기록이 없어요. 아래에서 측정 방법을 골라 첫 기록을 남겨 보세요.</span>`}
-      <span class="muted">기준값 ${S.threshold}° · MY 탭에서 바꿀 수 있어요</span>
-    </div>
-    <span class="label">측정 방법</span>
-    <button class="option" type="button" data-go="photo">${ic('<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><circle cx="12" cy="9" r="2.5"/>')}
-      <span style="flex:1"><b>폰으로 찍어서 측정</b><br><span class="muted">다른 사람이 옆에서 찍어 줄 때. 폰 화면에서 귀와 C7을 탭해요.</span></span><span class="chev">›</span></button>
-    ${isWide() ? `<button class="option" type="button" data-go="dual">${ic('<rect x="2.5" y="5" width="13" height="10" rx="1.5"/><path d="M1 18h16"/><rect x="17.5" y="8" width="5" height="11" rx="1.2"/>')}
-      <span style="flex:1"><b>실시간 자세 측정</b> <span class="pill ok" style="font-size:11px;padding:1px 7px">노트북</span><br><span class="muted">폰 카메라(옆모습)와 웹캠(정면)을 나란히 보며 자세를 실시간으로 확인해요.</span></span><span class="chev">›</span></button>`
-    : `<button class="option" type="button" data-go="live">${ic('<rect x="2.5" y="5" width="13" height="10" rx="1.5"/><path d="M1 18h16"/><rect x="17.5" y="8" width="5" height="11" rx="1.2"/>')}
-      <span style="flex:1"><b>노트북 보면서 촬영</b><br><span class="muted">폰을 세워 두고 혼자 잴 때. 폰 카메라 화면이 노트북에 실시간으로 떠요.</span></span><span class="chev">›</span></button>`}
+    ${last ? `<div class="card">
+        <div class="row" style="justify-content:space-between"><b style="font-size:16px">최근 측정 결과</b>
+          <span class="muted">${fmt(last.date)}${last.tag !== "none" ? " · " + TAG_LABEL[last.tag] : ""}</span></div>
+        <div class="row" style="gap:10px;flex-wrap:nowrap">${turtle(moodOf(last.cva, last.threshold), 56)}<b style="font-size:15px">${MOOD_TEXT[moodOf(last.cva, last.threshold)]}</b></div>
+        <div class="gauge-card" style="display:flex;flex-direction:column">${gaugeSvg(last.cva, last.threshold)}
+          <div class="gauge-num"><span class="num">${last.cva.toFixed(1)}°</span><span class="pill ${moodOf(last.cva, last.threshold) === "good" ? "ok" : "warn"}">${MOOD_LABEL[moodOf(last.cva, last.threshold)]}</span></div>
+          <div class="gauge-legend"><span><i style="background:var(--warn)"></i>거북목 ${last.threshold - 5}° 미만</span><span><i style="background:var(--tragus)"></i>주의</span><span><i style="background:var(--ok)"></i>바른 자세 ${last.threshold}° 이상</span></div></div>
+        <button class="link-btn" type="button" id="lastDetail" style="align-self:center;color:var(--accent);text-decoration:none;font-weight:700">결과 자세히 보기 ›</button>
+      </div>`
+      : `<div class="card" style="align-items:center;text-align:center;padding:24px 16px">${turtle("strain", 90)}
+        <b style="font-size:16px">아직 측정 결과가 없어요</b><span class="muted">아래 버튼으로 첫 측정을 해 보세요. 결과가 여기에 게이지로 나와요.</span></div>`}
+    <button class="btn primary big" type="button" data-go="photo">📸 &nbsp;폰으로 측정하기</button>
+    ${isWide() ? `<button class="btn big" type="button" data-go="dual">💻 &nbsp;실시간 자세 측정 (노트북)</button>`
+      : `<button class="btn big" type="button" data-go="live">💻 &nbsp;노트북 보면서 촬영</button>`}
+    <span class="muted" style="text-align:center">혼자 잴 때는 폰을 세워 두고 노트북으로 보면서 찍어요 · 기준값 ${S.threshold}° (MY에서 변경)</span>
     <div class="card tip">
       <b style="color:var(--ok)">정확하게 재는 법</b>
       <ul><li>카메라를 어깨 높이에서 몸과 직각으로 두어요</li><li>귀 이주와 C7(목 뒤 가장 튀어나온 뼈)에 작은 스티커를 붙여요</li><li>편하게 정면을 보고 선 자세에서 찍어요</li></ul>
     </div>`;
+  if ($("lastDetail")) $("lastDetail").onclick = () => { S.lastSummary = { rec: last, prev }; go("measure", "summary"); };
   $("view").querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
     S.photo = null; S.pts = { tragus: null, c7: null }; S.tag = "none"; S.saved = false; go("measure", b.dataset.go);
   }));
