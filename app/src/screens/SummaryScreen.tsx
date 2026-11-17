@@ -33,7 +33,7 @@ export default function SummaryScreen() {
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.surface2 }}>
         <Turtle mood={moodOf(r.cva, r.threshold)} height={104} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text weight="bold" style={{ fontSize: 17 }}>{MOOD_TEXT[moodOf(r.cva, r.threshold)]}</Text>
+          <Text weight="bold" style={{ fontSize: 16 }}>{MOOD_TEXT[moodOf(r.cva, r.threshold)]}</Text>
           <Text style={textStyles.muted}>기준 {r.threshold}° · {r.cva >= r.threshold ? "기준 범위" : r.cva >= r.threshold - 5 ? "기준보다 조금 낮음" : "기준보다 많이 낮음"}</Text>
         </View>
       </Card>
@@ -71,13 +71,13 @@ export default function SummaryScreen() {
       {!!summary.side && (
         <View style={styles.thumb}>
           <Image source={{ uri: summary.side }} style={{ width: "100%", height: 220 }} resizeMode="contain" />
-          <Text style={{ color: "#fff", fontSize: 12.5, padding: 8 }}>옆모습</Text>
+          <Text style={{ color: "#fff", fontSize: 13, padding: 8 }}>옆모습</Text>
         </View>
       )}
 
       <Card style={{ backgroundColor: colors.accentSoft, borderColor: colors.accentSoft }}>
         <Text weight="bold" style={{ color: colors.ok }}>이렇게 해 보세요</Text>
-        {sm.tips.map((t) => <Text key={t} style={{ fontSize: 13.5, lineHeight: 21 }}>•  {t}</Text>)}
+        {sm.tips.map((t) => <Text key={t} style={{ fontSize: 13, lineHeight: 21 }}>•  {t}</Text>)}
       </Card>
 
       <View style={{ flexDirection: "row", gap: 8 }}>

@@ -20,7 +20,7 @@ export default function RecordsScreen({ onMeasure }: { onMeasure: () => void }) 
       <View style={[styles.empty, { paddingTop: insets.top + 16 }]}>
         <PageHead icon="records" title="기록" />
         <Card style={{ alignItems: "center", paddingVertical: 32 }}>
-          <Text weight="bold" style={{ fontSize: 17 }}>아직 측정 기록이 없어요</Text>
+          <Text weight="bold" style={{ fontSize: 16 }}>아직 측정 기록이 없어요</Text>
           <Text style={[textStyles.muted, { textAlign: "center" }]}>측정하고 "기록 저장"을 누르면{"\n"}여기에 날짜별 그래프로 쌓여요.</Text>
           <Pressable onPress={onMeasure} style={styles.cta}><Text weight="bold" style={{ color: colors.onAccent }}>측정하러 가기</Text></Pressable>
         </Card>

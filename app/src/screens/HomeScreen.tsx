@@ -108,10 +108,10 @@ export default function HomeScreen() {
             <Pressable key={i} accessibilityRole="button" accessibilityElementsHidden={i === SLIDES.length}
               onPress={() => go(sl.tab, sl.route)} style={[styles.slide, { width, backgroundColor: sl.bg }]}>
               <View style={{ flex: 1, gap: 4 }}>
-                <Text weight="heavy" style={{ color: "#fff", fontSize: 21, lineHeight: 28 }}>{sl.t}</Text>
-                <Text style={{ color: "#ffffffdd", fontSize: 13.5 }}>{sl.s}</Text>
+                <Text weight="heavy" style={{ color: "#fff", fontSize: 22, lineHeight: 28 }}>{sl.t}</Text>
+                <Text style={{ color: "#ffffffdd", fontSize: 13 }}>{sl.s}</Text>
               </View>
-              <Text style={{ fontSize: 52 }}>{sl.art}</Text>
+              <Text style={{ fontSize: 36 }}>{sl.art}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -119,9 +119,9 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.tipStrip}>
-        <Text style={{ fontSize: 26 }}>💡</Text>
+        <Text style={{ fontSize: 28 }}>💡</Text>
         <View style={{ flex: 1 }}>
-          <Text weight="bold" style={{ fontSize: 14.5 }}>오늘의 자세 팁</Text>
+          <Text weight="bold" style={{ fontSize: 15 }}>오늘의 자세 팁</Text>
           <Text style={textStyles.muted}>{tip}</Text>
         </View>
       </View>
@@ -130,7 +130,7 @@ export default function HomeScreen() {
       <View style={styles.shortcuts}>
         {([["📸", "폰 촬영", "measure", "photo"], ["💻", "노트북 촬영", "measure", "live"], ["🧘", "스트레칭", "exercise", undefined], ["📊", "주간 리포트", "records", undefined]] as const).map(([e, l, t, r]) => (
           <Pressable key={l} accessibilityRole="button" onPress={() => go(t, r)} style={styles.sc}>
-            <Text style={{ fontSize: 32 }}>{e}</Text>
+            <Text style={{ fontSize: 36 }}>{e}</Text>
             <Text weight="bold" style={{ fontSize: 13 }}>{l}</Text>
           </Pressable>
         ))}
@@ -161,13 +161,13 @@ const styles = StyleSheet.create({
   bento: { flexDirection: "row", gap: 10 },
   tile: { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16, gap: 4, overflow: "hidden", minHeight: 150 },
   tall: { padding: 0 },
-  h3: { fontSize: 19, letterSpacing: -0.3 },
+  h3: { fontSize: 18, letterSpacing: -0.3 },
   desc: { fontSize: 13, color: colors.muted },
   badge: { position: "absolute", top: 14, right: 14, borderWidth: 1.5, borderColor: colors.warn, borderRadius: 7, paddingHorizontal: 6, paddingVertical: 1 },
   scene: { flex: 1, backgroundColor: "#173560", alignItems: "center", justifyContent: "center", minHeight: 170 },
   tag: { marginTop: 8, alignSelf: "flex-start", borderWidth: 1.5, borderColor: colors.accent, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
   tagText: { color: colors.accent, fontSize: 13 },
-  art: { position: "absolute", right: 10, bottom: 8, fontSize: 40 },
+  art: { position: "absolute", right: 10, bottom: 8, fontSize: 36 },
   slide: { minHeight: 150, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 22 },
   pager: { position: "absolute", right: 16, bottom: 12, backgroundColor: "#0004", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   tipStrip: { flexDirection: "row", gap: 12, alignItems: "center", backgroundColor: "#2A2840", borderRadius: 16, padding: 14 },

@@ -184,12 +184,12 @@ export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
       {/* 전면 카메라일 때 폰 화면만 거울처럼 — 노트북으로 가는 영상은 실제 방향 그대로 */}
       <RTCView streamURL={stream.toURL()} style={styles.flex} objectFit="cover" mirror={facing === "user"} />
       <View style={[styles.facing, { bottom: insets.bottom + 150 }]}>
-        <Text style={{ color: "#fff", fontSize: 12.5 }}>{facing === "user" ? "전면 카메라 (화면만 거울처럼)" : "후면 카메라"}</Text>
+        <Text style={{ color: "#fff", fontSize: 13 }}>{facing === "user" ? "전면 카메라 (화면만 거울처럼)" : "후면 카메라"}</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="전면·후면 카메라 바꾸기" disabled={flipping} onPress={flip}
         style={[styles.flipBtn, { bottom: insets.bottom + 144, opacity: flipping ? 0.5 : 1 }]}>
         <Icon name="flip" color="#fff" size={20} width={2} />
-        <Text weight="bold" style={{ color: "#fff", fontSize: 14 }}>전환</Text>
+        <Text weight="bold" style={{ color: "#fff", fontSize: 15 }}>전환</Text>
       </Pressable>
       <View pointerEvents="none" style={styles.vLine} />
       <View style={[styles.topBar, { top: insets.top + 8 }]}><LevelGuide tilt={tilt} /></View>
@@ -209,17 +209,17 @@ const styles = StyleSheet.create({
   facing: { position: "absolute", left: 16, backgroundColor: "#000a", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   flipBtn: { position: "absolute", right: 16, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#000a", borderWidth: 1, borderColor: "#ffffff55", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 },
   center: { flex: 1, padding: 24, backgroundColor: colors.bg },
-  title: { fontSize: 24 },
+  title: { fontSize: 22 },
   codeInput: {
-    fontSize: 30, fontFamily: fonts.heavy, letterSpacing: 6, textAlign: "center", color: colors.ink,
+    fontSize: 28, fontFamily: fonts.heavy, letterSpacing: 6, textAlign: "center", color: colors.ink,
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingVertical: 12,
   },
-  help: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  error: { color: colors.warn, fontSize: 14, textAlign: "center" },
+  help: { color: colors.muted, fontSize: 15, lineHeight: 21 },
+  error: { color: colors.warn, fontSize: 15, textAlign: "center" },
   vLine: { position: "absolute", top: 0, bottom: 0, left: "50%", width: 1, backgroundColor: "#ffffff99" },
   topBar: { position: "absolute", left: 0, right: 0, alignItems: "center" },
   bottomBar: { position: "absolute", left: 16, right: 16, gap: 8, alignItems: "center" },
   status: { color: "#c9d3d8", fontSize: 15 },
-  help2: { color: "#c9d3d8", fontSize: 12.5, textAlign: "center" },
+  help2: { color: "#c9d3d8", fontSize: 13, textAlign: "center" },
   secondary: { backgroundColor: "#ffffff26", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18 },
 });

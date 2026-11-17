@@ -52,7 +52,7 @@ export default function MeasureHomeScreen({ onPhoto, onLive }: { onPhoto: () => 
 
       <Card style={{ backgroundColor: colors.accentSoft, borderColor: colors.accentSoft }}>
         <Text weight="bold" style={{ color: colors.ok }}>정확하게 재는 법</Text>
-        <Text style={{ fontSize: 13.5, lineHeight: 21 }}>
+        <Text style={{ fontSize: 13, lineHeight: 21 }}>
           • 카메라를 어깨 높이에서 몸과 직각으로 두어요{"\n"}
           • 귀 이주와 C7(목 뒤 가장 튀어나온 뼈)에 작은 스티커를 붙여요{"\n"}
           • 편하게 정면을 보고 선 자세에서 찍어요

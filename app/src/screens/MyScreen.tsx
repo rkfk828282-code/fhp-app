@@ -55,7 +55,7 @@ export default function MyScreen() {
           const on = p !== null && myPanel === p;
           return (
             <Pressable key={l} accessibilityRole="button" accessibilityState={{ expanded: on }} onPress={() => (p ? toggle(p) : go("records"))} style={styles.sc}>
-              <Text style={{ fontSize: 32 }}>{e}</Text>
+              <Text style={{ fontSize: 36 }}>{e}</Text>
               <Text weight="bold" style={{ fontSize: 13, color: on ? colors.ok : colors.ink }}>{l}</Text>
             </Pressable>
           );
@@ -93,7 +93,7 @@ export default function MyScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View style={styles.avatar}><Turtle mood="head" height={36} /></View>
           <View style={{ flex: 1 }}>
-            <Text weight="bold" style={{ fontSize: 17 }}>나</Text>
+            <Text weight="bold" style={{ fontSize: 16 }}>나</Text>
             <Text style={textStyles.muted}>{first ? `${formatDateTime(first.date).split(" ")[0]}부터 함께하는 중` : "오늘부터 시작해요"}</Text>
           </View>
         </View>
@@ -107,13 +107,13 @@ export default function MyScreen() {
 
       {/* 배지 */}
       <View style={styles.badgeStrip}>
-        <Text style={{ fontSize: 26 }}>🏅</Text>
+        <Text style={{ fontSize: 28 }}>🏅</Text>
         <View style={{ flex: 1, gap: 6 }}>
           <Text weight="bold">배지 {badges.filter((b) => b.on).length} / {badges.length}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             {badges.map((b) => (
               <View key={b.name} style={[styles.badge, !b.on && { opacity: 0.5 }]}>
-                <Text weight={b.on ? "bold" : "regular"} style={{ fontSize: 12.5, color: b.on ? colors.ok : colors.muted }}>{b.icon} {b.name}</Text>
+                <Text weight={b.on ? "bold" : "regular"} style={{ fontSize: 13, color: b.on ? colors.ok : colors.muted }}>{b.icon} {b.name}</Text>
               </View>
             ))}
           </View>
@@ -142,7 +142,7 @@ function Stepper({ title, desc, value, onMinus, onPlus }: { title: string; desc:
         <Text style={textStyles.muted}>{desc}</Text>
       </View>
       <Button title="−" onPress={onMinus} style={styles.step} />
-      <Text style={[textStyles.num, { fontSize: 20, minWidth: 52, textAlign: "center" }]}>{value}</Text>
+      <Text style={[textStyles.num, { fontSize: 18, minWidth: 52, textAlign: "center" }]}>{value}</Text>
       <Button title="+" onPress={onPlus} style={styles.step} />
     </View>
   );

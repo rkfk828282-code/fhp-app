@@ -80,9 +80,9 @@ export default function ExerciseScreen() {
           {ROUTINE.map((_, i) => <View key={i} style={[styles.stepBar, i < step && { backgroundColor: colors.accent, opacity: 0.45 }, i === step && { backgroundColor: colors.accent }]} />)}
         </View>
         <Card style={{ alignItems: "center", paddingVertical: 22 }}>
-          <Text style={{ fontSize: 40 }}>{st.art}</Text>
+          <Text style={{ fontSize: 36 }}>{st.art}</Text>
           <Text weight="heavy" style={{ fontSize: 22 }}>{st.name}</Text>
-          <Text style={[textStyles.muted, { textAlign: "center", fontSize: 14, lineHeight: 22 }]}>{st.how}</Text>
+          <Text style={[textStyles.muted, { textAlign: "center", fontSize: 15, lineHeight: 22 }]}>{st.how}</Text>
           <View style={{ alignItems: "center", justifyContent: "center", marginVertical: 4 }}>
             <Svg width={220} height={220} viewBox="0 0 220 220">
               <Circle cx={110} cy={110} r={R} stroke={colors.accentSoft} strokeWidth={14} fill="none" />
@@ -91,7 +91,7 @@ export default function ExerciseScreen() {
             </Svg>
             <View style={StyleSheet.absoluteFill}>
               <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                <Text style={[textStyles.num, { fontSize: 46 }]}>{Math.max(0, Math.ceil(left))}</Text>
+                <Text style={[textStyles.num, { fontSize: 36 }]}>{Math.max(0, Math.ceil(left))}</Text>
                 <Text style={textStyles.muted}>초 남음</Text>
               </View>
             </View>
@@ -118,7 +118,7 @@ export default function ExerciseScreen() {
         </Card>
         <Card style={{ backgroundColor: colors.accentSoft, borderColor: colors.accentSoft }}>
           <Text weight="bold" style={{ color: colors.ok }}>운동 효과를 기록해 보세요</Text>
-          <Text style={{ fontSize: 13.5, lineHeight: 21 }}>지금 바로 측정해서 "운동 후"로 저장하면, 기록 탭에서 운동 전·후 차이를 볼 수 있어요.</Text>
+          <Text style={{ fontSize: 13, lineHeight: 21 }}>지금 바로 측정해서 "운동 후"로 저장하면, 기록 탭에서 운동 전·후 차이를 볼 수 있어요.</Text>
           <Button kind="primary" title="운동 후 측정하기" onPress={() => { setMode("idle"); setStartTag("after"); go("measure", "photo"); }} />
         </Card>
         <Button title="운동 탭으로" onPress={() => setMode("idle")} />
@@ -138,7 +138,7 @@ export default function ExerciseScreen() {
           {r.on ? mmss(secLeft) : "OFF"}
         </Text>
         <Pressable accessibilityRole="button" onPress={() => { setMyPanel("alarm"); go("my"); }} style={styles.interval}>
-          <Text style={{ fontSize: 14 }}>⏰ <Text weight="bold" style={{ color: colors.ok, fontSize: 14 }}>{r.min}분</Text>마다 알림 <Text style={[textStyles.muted, { fontSize: 13 }]}>· MY에서 변경 ›</Text></Text>
+          <Text style={{ fontSize: 15 }}>⏰ <Text weight="bold" style={{ color: colors.ok, fontSize: 15 }}>{r.min}분</Text>마다 알림 <Text style={[textStyles.muted, { fontSize: 13 }]}>· MY에서 변경 ›</Text></Text>
         </Pressable>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Button title={r.on ? "알림 끄기" : "알림 켜기"} onPress={toggleReminder} style={{ flex: 1 }} />
@@ -149,15 +149,15 @@ export default function ExerciseScreen() {
 
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Card style={{ flex: 1, gap: 4 }}>
-          <Text weight="heavy" style={{ fontSize: 19 }}>오늘</Text>
+          <Text weight="heavy" style={{ fontSize: 18 }}>오늘</Text>
           <Text style={textStyles.muted}>목표 {settings.goal.daily}회</Text>
-          <Text style={[textStyles.num, { fontSize: 32, marginTop: 4 }]}>{done}<Text style={[textStyles.muted, { fontSize: 14 }]}> / {settings.goal.daily}회</Text></Text>
+          <Text style={[textStyles.num, { fontSize: 36, marginTop: 4 }]}>{done}<Text style={[textStyles.muted, { fontSize: 15 }]}> / {settings.goal.daily}회</Text></Text>
           <Bar pct={(done / settings.goal.daily) * 100} />
         </Card>
         <Card style={{ flex: 1, gap: 4 }}>
-          <Text weight="heavy" style={{ fontSize: 19 }}>연속</Text>
+          <Text weight="heavy" style={{ fontSize: 18 }}>연속</Text>
           <Text style={textStyles.muted}>하루라도 하면 이어져요</Text>
-          <Text style={[textStyles.num, { fontSize: 32, marginTop: 4 }]}>{streakDays(sessions)}<Text style={[textStyles.muted, { fontSize: 14 }]}>일</Text></Text>
+          <Text style={[textStyles.num, { fontSize: 36, marginTop: 4 }]}>{streakDays(sessions)}<Text style={[textStyles.muted, { fontSize: 15 }]}>일</Text></Text>
           <Text style={{ position: "absolute", right: 10, bottom: 6, fontSize: 36 }}>🔥</Text>
         </Card>
       </View>

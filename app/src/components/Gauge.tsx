@@ -33,7 +33,7 @@ export function Gauge({ cva, threshold, sub }: { cva: number; threshold: number;
         <Circle cx={cx} cy={cy} r={4} fill={colors.surface} />
       </Svg>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Text style={[textStyles.num, { fontSize: 40 }]}>{cva.toFixed(1)}°</Text>
+        <Text style={[textStyles.num, { fontSize: 36 }]}>{cva.toFixed(1)}°</Text>
         <Pill kind={mood === "good" ? "ok" : "warn"}>{MOOD_LABEL[mood]}</Pill>
       </View>
       {!!sub && <Text style={[textStyles.muted, { textAlign: "center" }]}>{sub}</Text>}

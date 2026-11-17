@@ -28,7 +28,7 @@ export default function CvaInfoScreen() {
           {([["bad", "거북목", colors.warn, "기준보다 5° 넘게 낮음"], ["strain", "애쓰는 중", colors.tragus, "기준보다 5° 안쪽"], ["good", "바른 자세", colors.ok, "기준 이상"]] as const).map(([m, t, c, d]) => (
             <View key={m} style={{ flex: 1, alignItems: "center", gap: 4 }}>
               <Turtle mood={m} height={86} />
-              <Text weight="bold" style={{ color: c, fontSize: 14 }}>{t}</Text>
+              <Text weight="bold" style={{ color: c, fontSize: 15 }}>{t}</Text>
               <Text style={[textStyles.muted, { fontSize: 12, textAlign: "center" }]}>{d}</Text>
             </View>
           ))}
@@ -54,6 +54,6 @@ export default function CvaInfoScreen() {
 
 const styles = StyleSheet.create({
   wrap: { padding: 16, gap: 12, paddingBottom: 24 },
-  p: { fontSize: 14.5, lineHeight: 24 },
-  h3: { fontSize: 15.5, color: colors.ok, marginTop: 6 },
+  p: { fontSize: 15, lineHeight: 24 },
+  h3: { fontSize: 15, color: colors.ok, marginTop: 6 },
 });
