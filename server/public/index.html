@@ -14,15 +14,13 @@ html, body { margin: 0; }
 button, input, select, textarea, svg text { font-family: var(--font); }
 /* Layout: 실제 앱(React Native)과 같은 화면을 폰 너비 한 칸으로. 하단 탭 4개, 카메라 화면은 전체 화면 */
 :root {
-  --bg: #F4F6F5; --surface: #FFFFFF; --ink: #191F1C; --muted: #5E6A64; --line: #DBE2DE;
-  --accent: #0B9B5A; --accent-soft: #E2F5EA; --ok: #0A8A50; --ok-bg: #E2F5EA; --warn: #B8432F; --warn-bg: #F8E4DF;
-  --stage: #111814; --tragus: #F2C230; --c7: #2EC4D6; --outer: #E6EBE8;
+  /* 남색 배경 + 민트 포인트 (거북이 캐릭터 색과 맞춤) */
+  --bg: #0B1B33; --surface: #12284A; --surface-2: #183259; --ink: #EAF2FF; --muted: #9DB0CE; --line: #22406B;
+  --accent: #3DDBB8; --accent-soft: #143F4C; --on-accent: #052B27; --ok: #4BE3B0; --ok-bg: #123F3E; --warn: #FF8A7A; --warn-bg: #43232F;
+  --stage: #050C18; --tragus: #F2C230; --c7: #2EC4D6; --outer: #071226;
   --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --outer: #0B100E; color-scheme: light; }
-}
-:root[data-theme="dark"] { --outer: #0B100E; }
+:root { color-scheme: dark; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { background: var(--outer); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; }
@@ -31,7 +29,7 @@ body { background: var(--outer); color: var(--ink); font-family: var(--font); fo
   display: flex; flex-direction: column;
 }
 /* 폰에서는 화면 너비를 꽉 채우고, 태블릿·노트북처럼 넓은 화면에서만 폰 모양 틀로 보여줌 */
-@media (min-width: 768px) and (max-width: 899px) { .phone { max-width: 440px; margin-block: 16px; min-height: calc(100% - 32px); border-radius: 28px; overflow: hidden; box-shadow: 0 10px 40px #0002; } }
+@media (min-width: 768px) and (max-width: 899px) { .phone { max-width: 440px; margin-block: 16px; min-height: calc(100% - 32px); border-radius: 28px; overflow: hidden; box-shadow: 0 10px 40px #0008; } }
 .view { flex: 1; padding: 20px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 12px; }
 .view.full { padding: 0; gap: 0; }
 h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
@@ -41,7 +39,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .muted { color: var(--muted); font-size: 13px; }
 .num { font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
 .btn { appearance: none; font: inherit; font-weight: 600; min-height: 46px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn.danger { color: var(--warn); border-color: var(--warn); }
 .btn.big { min-height: 56px; font-size: 17px; }
 .btn[disabled] { opacity: .45; cursor: default; }
@@ -54,7 +52,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
 .seg button { flex: 1; appearance: none; border: 0; background: transparent; font: inherit; color: var(--ink); min-height: 42px; cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--line); }
-.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .option { appearance: none; text-align: left; font: inherit; color: inherit; display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; cursor: pointer; width: 100%; }
 .option .ic { width: 48px; height: 48px; border-radius: 12px; background: var(--accent-soft); display: grid; place-items: center; flex: none; }
 .option b { font-size: 16px; } .option .chev { color: var(--muted); font-size: 20px; font-weight: 600; }
@@ -102,7 +100,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .logo.soft { background: var(--accent-soft); color: var(--accent); }
 .profile-row { flex-direction: row; align-items: center; gap: 12px; padding: 14px 16px; }
 .home-head { display: flex; align-items: center; gap: 10px; }
-.logo { width: 38px; height: 38px; border-radius: 11px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.logo { width: 38px; height: 38px; border-radius: 11px; background: var(--accent-soft); display: grid; place-items: center; flex: none; }
 .home-head .name { font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: -0.3px; flex: 1; }
 .icon-btn { appearance: none; border: 0; background: none; width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer; position: relative; color: var(--ink); }
 .icon-btn .dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
@@ -115,7 +113,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .tile .desc { font-size: 13px; color: var(--muted); }
 .tile .tag { margin-top: 8px; align-self: flex-start; border: 1.5px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 2px 8px; font-size: 13px; font-weight: 600; }
 .tile .art { position: absolute; right: 10px; bottom: 8px; font-size: 44px; line-height: 1; }
-.tile .scene { flex: 1; background: linear-gradient(#EAF6EF, #EAF6EF 62%, #CFEBD9 62%); display: grid; place-items: center; min-height: 170px; }
+.tile .scene { flex: 1; background: radial-gradient(circle at 50% 55%, #1C3F6E, #12284A 70%); display: grid; place-items: center; min-height: 170px; }
 .badge-live { position: absolute; top: 14px; right: 14px; border: 1.5px solid var(--warn); color: var(--warn); border-radius: 7px; padding: 1px 6px; font-size: 12px; font-weight: 700; }
 .banner-wrap { margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); position: relative; }
 .banner { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
@@ -125,11 +123,11 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .slide span { font-size: 13.5px; opacity: .9; }
 .slide .art { font-size: 56px; margin-left: auto; flex: none; }
 .pager { position: absolute; right: 16px; bottom: 12px; background: #0004; color: #fff; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; }
-.notice-strip { display: flex; gap: 12px; align-items: center; background: #FFF4E5; border-radius: 16px; padding: 14px 16px; }
+.notice-strip { display: flex; gap: 12px; align-items: center; background: #2A2840; border-radius: 16px; padding: 14px 16px; }
 .notice-strip .t { font-weight: 600; font-size: 14.5px; } .notice-strip .m { font-size: 12.5px; color: var(--muted); }
 .sec-head { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
 .sec-head h2 { margin: 0; font-size: 18px; font-weight: 800; }
-.chipbtn { appearance: none; border: 0; background: #E9EEEB; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.chipbtn { appearance: none; border: 0; background: var(--surface-2); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
 .more { appearance: none; border: 0; background: none; font: inherit; color: var(--muted); font-size: 13px; cursor: pointer; }
 .shortcuts { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px 6px; }
 .sc { appearance: none; border: 0; background: none; font: inherit; color: var(--ink); display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; position: relative; }
@@ -146,7 +144,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .timer-card { gap: 10px; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chipsel { appearance: none; font: inherit; font-size: 14px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
-.chipsel[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chipsel[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .ex-ctrl { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 8px; }
 .ex-ctrl.two { grid-template-columns: 1fr 1.4fr; }
 .steps { display: flex; gap: 6px; }
@@ -160,11 +158,11 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
 .stepnum { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--ok); display: grid; place-items: center; font-weight: 700; flex: none; }
 .avatar.sm { width: 46px; height: 46px; font-size: 24px; }
-.tile.goal { background: linear-gradient(#fff, #fff 40%, #EAF6EF); }
+.tile.goal { background: linear-gradient(var(--surface), var(--surface) 40%, var(--accent-soft)); }
 .goal-body { display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 16px; position: relative; flex: 1; justify-content: flex-end; }
 .art-lg { position: absolute; right: 12px; top: -6px; font-size: 52px; }
 .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.badge { font-size: 12.5px; padding: 3px 8px; border-radius: 999px; background: #fff; color: var(--muted); opacity: .55; }
+.badge { font-size: 12.5px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); opacity: .55; }
 .badge.on { opacity: 1; color: var(--ok); font-weight: 600; }
 
 .article h2 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.4; text-wrap: balance; }
@@ -180,6 +178,10 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .kv .muted { font-size: 12px; } .kv b { font-size: 18px; }
 .sc[aria-expanded="true"] { color: var(--ok); }
 .result-hero { flex-direction: row; align-items: center; gap: 18px; }
+.mood-card { flex-direction: row; align-items: center; gap: 14px; background: radial-gradient(circle at 20% 50%, #1C3F6E, var(--surface) 60%); }
+.moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.moods figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.moods figcaption { display: flex; flex-direction: column; font-size: 13px; }
 .summary-text { margin: 0; font-size: 15px; line-height: 1.75; }
 .summary-text b { color: var(--ink); }
 .thumbs { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
@@ -222,12 +224,12 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .drawer hr { border: 0; border-top: 1px solid var(--line); margin: 10px 4px; width: auto; }
 .drawer .cap { font-size: 12px; color: var(--muted); padding: 2px 12px 4px; font-weight: 600; letter-spacing: .3px; }
 
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 30; max-width: 90%; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 30; max-width: 90%; }
 
 /* ===== 자세 모니터링 ===== */
 .mon-switch { appearance: none; border: 0; cursor: pointer; padding: 0; background: none; flex: none; }
 .mon-switch .sw { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; height: 34px; border-radius: 999px; font: inherit; font-weight: 800; letter-spacing: .05em; background: var(--line); color: var(--muted); }
-.mon-switch[aria-pressed="true"] .sw { background: var(--accent); color: #fff; }
+.mon-switch[aria-pressed="true"] .sw { background: var(--accent); color: var(--on-accent); }
 .mon-switch:disabled { cursor: default; opacity: .5; }
 .mon-switch:focus-visible { outline: 3px solid var(--tragus); outline-offset: 2px; border-radius: 999px; }
 .link-btn { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; padding: 4px; }
@@ -256,7 +258,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot .ctrl { display: grid; grid-template-columns: 1fr 104px; gap: 8px; }
 #dualRoot .ctrl .onoff { font-size: 16px; font-weight: 800; letter-spacing: 0.04em; }
 #dualRoot .ctrl .onoff[data-state="on"] { color: var(--muted); }
-#dualRoot .ctrl .onoff[data-state="off"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+#dualRoot .ctrl .onoff[data-state="off"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 /* 찍은 사진 아래 박스: 양쪽 같은 구조·같은 높이 */
 #dualRoot .shot-card .btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 #dualRoot .shot-card .btns .btn { padding: 0 8px; }
@@ -342,7 +344,7 @@ a.btn { text-decoration: none; }
   <header class="topbar">
     <button class="icon-btn menu-btn" type="button" id="menuBtn" aria-label="메뉴 열기" aria-expanded="false" aria-controls="drawer">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <span class="logo" aria-hidden="true" style="width:32px;height:32px;border-radius:9px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="15" cy="6.5" r="3.5"/><path d="M13 10.5 9 17M9 17h8"/></svg></span>
+    <span class="logo" aria-hidden="true" style="width:32px;height:32px;border-radius:9px"><img src="/img/turtle_head.png" alt="" width="24" height="24"></span>
     <span class="brand">거북목 체크</span><span class="where" id="where"></span>
   </header>
   <div class="scrim" id="scrim"></div>
@@ -670,21 +672,31 @@ function render() {
 }
 
 /* ===== 홈 (HomeScreen) ===== */
+/* ===== 거북이 캐릭터 (사용자가 준 그림: public/img/turtle_*.png) ===== */
+// mood: good 바른 자세 / strain 애쓰는 중 / bad 거북목
+function turtle(mood = "good", size = 120) {
+  const label = { good: "바른 자세 거북이", strain: "목을 펴려고 애쓰는 거북이", bad: "목이 앞으로 나온 거북이" }[mood];
+  return `<img class="turtle" src="/img/turtle_${mood}.png" alt="${label}" style="height:${size}px;width:auto">`;
+}
+// CVA로 표정 고르기: 기준 이상 = 바른 자세, 기준보다 5° 안쪽 = 애쓰는 중, 그 아래 = 거북목
+function moodOf(cva, th) { return cva >= th ? "good" : cva >= th - 5 ? "strain" : "bad"; }
+const MOOD_TEXT = { good: "목이 쭉 펴졌어요", strain: "조금만 더 펴 볼까요", bad: "거북이처럼 목이 나왔어요" };
+
 const NECK_ART = `<svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
   <path d="M38 150 L44 112 Q50 92 70 88 L86 90 Q104 98 106 120 L108 150 Z" fill="#7FC9A0"/>
   <path d="M64 92 L84 62 L100 68 L86 96 Z" fill="#7FC9A0"/>
   <ellipse cx="102" cy="48" rx="26" ry="30" fill="#9AD7B4"/>
-  <circle cx="92" cy="54" r="4.5" fill="#F2C230" stroke="#191F1C" stroke-width="1.5"/>
-  <circle cx="66" cy="90" r="4.5" fill="#2EC4D6" stroke="#191F1C" stroke-width="1.5"/>
+  <circle cx="92" cy="54" r="4.5" fill="#F2C230" stroke="#EAF2FF" stroke-width="1.5"/>
+  <circle cx="66" cy="90" r="4.5" fill="#2EC4D6" stroke="#EAF2FF" stroke-width="1.5"/>
   <line x1="66" y1="90" x2="92" y2="54" stroke="#F2C230" stroke-width="2.5"/>
   <line x1="66" y1="90" x2="112" y2="90" stroke="#2EC4D6" stroke-width="2.5" stroke-dasharray="5 4"/>
-  <path d="M84 90 A18 18 0 0 0 76.6 75.5" fill="none" stroke="#191F1C" stroke-width="2"/>
+  <path d="M84 90 A18 18 0 0 0 76.6 75.5" fill="none" stroke="#EAF2FF" stroke-width="2"/>
 </svg>`;
 const SLIDES = [
-  { bg: "#0B9B5A", t: "이번 주 목 각도<br>얼마나 좋아졌을까?", s: "주간 변화 확인하기", art: "📈", go: ["records"] },
-  { bg: "#E0882F", t: "CVA가 뭐예요?<br>목 각도 쉽게 알기", s: "1분 설명 읽기", art: "📐", go: ["home", "cva"] },
-  { bg: "#3A7BD5", t: "50분 앉아 있었다면<br>목 운동할 시간", s: "자가운동 타이머 보기", art: "⏰", go: ["exercise"] },
-  { bg: "#7A5AF8", t: "혼자서도 정확하게<br>노트북 보며 촬영", s: "노트북 촬영 시작하기", art: "💻", go: ["measure", "live"], wide: ["measure", "dual"] },
+  { bg: "linear-gradient(120deg,#0F7A66,#12284A)", t: "이번 주 목 각도<br>얼마나 좋아졌을까?", s: "주간 변화 확인하기", art: "📈", go: ["records"] },
+  { bg: "linear-gradient(120deg,#A65A23,#12284A)", t: "CVA가 뭐예요?<br>목 각도 쉽게 알기", s: "1분 설명 읽기", art: "📐", go: ["home", "cva"] },
+  { bg: "linear-gradient(120deg,#2F62B5,#12284A)", t: "50분 앉아 있었다면<br>목 운동할 시간", s: "자가운동 타이머 보기", art: "⏰", go: ["exercise"] },
+  { bg: "linear-gradient(120deg,#5A44C2,#12284A)", t: "혼자서도 정확하게<br>노트북 보며 촬영", s: "노트북 촬영 시작하기", art: "💻", go: ["measure", "live"], wide: ["measure", "dual"] },
 ];
 const TIPS = ["모니터 위쪽 끝을 눈높이에 맞춰요", "폰은 눈높이로 들어 올려서 봐요", "턱을 살짝 당기고 귀와 어깨를 일직선으로", "50분 앉았다면 일어나서 목을 풀어 줘요"];
 function homeScreen() {
@@ -695,7 +707,7 @@ function homeScreen() {
   const goalProg = last ? Math.max(0, Math.min(100, (last.cva - 40) / (S.goal.cva - 40) * 100)) : 0;
   $("view").innerHTML = `
     <div class="page-head">
-      <span class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="15" cy="6.5" r="3.5"/><path d="M13 10.5 9 17M9 17h8"/></svg></span>
+      <span class="logo" aria-hidden="true"><img src="/img/turtle_head.png" alt="" width="28" height="28"></span>
       <h1 class="brand">거북목 체크</h1>
       <button class="icon-btn side" type="button" aria-label="알림" data-go="exercise"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span class="dot"></span></button>
     </div>
@@ -704,7 +716,7 @@ function homeScreen() {
       <button class="tile tall" type="button" data-go="measure">
         <span class="badge-live">CVA</span>
         <span class="top"><span class="h3">자세 측정</span><span class="desc">옆모습으로 목 각도 재기</span></span>
-        <span class="scene">${NECK_ART}</span>
+        <span class="scene">${turtle(last ? moodOf(last.cva, last.threshold) : "good", 132)}</span>
       </button>
       <button class="tile" type="button" data-go="my">
         <span class="h3">내 목표</span><span class="desc">CVA ${S.goal.cva}° 이상 목표</span>
@@ -780,9 +792,17 @@ let bannerTimer;
 function cvaInfo() {
   $("view").innerHTML = `
     <div class="page-head"><button class="logo soft" type="button" id="cvaBack" aria-label="홈으로" style="border:0;cursor:pointer;font:inherit;font-size:24px;font-weight:700;line-height:1">‹</button><h1>CVA가 뭐예요?</h1></div>
-    <div class="card" style="align-items:center;text-align:center;background:linear-gradient(#fff,#EAF6EF)">
+    <div class="card" style="align-items:center;text-align:center;background:linear-gradient(var(--surface),var(--accent-soft))">
       ${NECK_ART.replace('width="150" height="150"', 'width="190" height="190"')}
       <span class="muted"><b style="color:var(--tragus);-webkit-text-stroke:0.3px #0006">●</b> 귀 이주 &nbsp; <b style="color:var(--c7)">●</b> C7 &nbsp; 두 선 사이 각도 = CVA</span>
+    </div>
+    <div class="card">
+      <b style="font-size:16px">거북이 표정으로 보는 내 자세</b>
+      <div class="moods">
+        <figure>${turtle("bad", 92)}<figcaption><b style="color:var(--warn)">거북목</b><span class="muted">기준보다 5° 넘게 낮음</span></figcaption></figure>
+        <figure>${turtle("strain", 92)}<figcaption><b style="color:var(--tragus)">애쓰는 중</b><span class="muted">기준보다 5° 안쪽</span></figcaption></figure>
+        <figure>${turtle("good", 92)}<figcaption><b style="color:var(--ok)">바른 자세</b><span class="muted">기준 이상</span></figcaption></figure>
+      </div>
     </div>
     <div class="card article">
       <h2>CVA는 목이 앞으로 얼마나 나왔는지 보는 각도예요</h2>
@@ -977,6 +997,10 @@ function summaryScreen() {
   const thumb = (src, label) => src ? `<figure class="thumb"><img src="${src}" alt="${label} 사진"><figcaption>${label}</figcaption></figure>` : "";
   $("view").innerHTML = `
     ${pageHead("measure", "측정 결과", `<span class="muted">${fmt(r.date)}</span>`)}
+    <div class="card mood-card">
+      ${turtle(moodOf(r.cva, r.threshold), 112)}
+      <div><b style="font-size:17px">${MOOD_TEXT[moodOf(r.cva, r.threshold)]}</b><span class="muted" style="display:block">기준 ${r.threshold}° · ${r.cva >= r.threshold ? "기준 범위" : r.cva >= r.threshold - 5 ? "기준보다 조금 낮음" : "기준보다 많이 낮음"}</span></div>
+    </div>
     <div class="card result-hero">
       <span class="num" style="font-size:56px;color:var(--${d.kind});line-height:1">${r.cva.toFixed(1)}°</span>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
@@ -1180,7 +1204,7 @@ function exerciseScreen() {
   if (EX.mode === "done") {
     v.innerHTML = `
       <div class="card" style="align-items:center;text-align:center;padding:28px 16px;margin-top:12px">
-        <span style="font-size:52px" aria-hidden="true">🎉</span>
+        ${turtle("good", 110)}
         <b style="font-size:22px">오늘 ${todayDone()}번째 운동 완료!</b>
         <span class="muted">연속 ${streakDays()}일째 · 목표 하루 ${S.goal.daily}회</span>
       </div>
@@ -1277,7 +1301,7 @@ function myScreen() {
 
     <div class="card">
       <div class="row" style="gap:12px">
-        <span class="avatar sm" aria-hidden="true">🙂</span>
+        <span class="avatar sm" aria-hidden="true"><img src="/img/turtle_head.png" alt="" width="34" height="34"></span>
         <div style="flex:1;min-width:0"><b style="font-size:17px">나</b>
           <div class="muted">${first ? fmt(first.date).split(" ")[0] + "부터 함께하는 중" : "오늘부터 시작해요"}</div></div>
       </div>

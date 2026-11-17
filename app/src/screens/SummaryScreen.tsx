@@ -1,4 +1,5 @@
 // 측정 완료 후 결과 요약
+import { MOOD_TEXT, moodOf, Turtle } from "../components/Turtle";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Card, KV, Label, PageHead, Pill, Text, textStyles } from "../components/ui";
@@ -23,6 +24,14 @@ export default function SummaryScreen() {
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.wrap, { paddingTop: insets.top + 16 }]}>
       <PageHead icon="measure" title="측정 결과" right={<Text style={textStyles.muted}>{formatDateTime(r.date)}</Text>} />
+
+      <Card style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.surface2 }}>
+        <Turtle mood={moodOf(r.cva, r.threshold)} height={104} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text weight="bold" style={{ fontSize: 17 }}>{MOOD_TEXT[moodOf(r.cva, r.threshold)]}</Text>
+          <Text style={textStyles.muted}>기준 {r.threshold}° · {r.cva >= r.threshold ? "기준 범위" : r.cva >= r.threshold - 5 ? "기준보다 조금 낮음" : "기준보다 많이 낮음"}</Text>
+        </View>
+      </Card>
 
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 18 }}>
         <Text style={[textStyles.num, { fontSize: 52, color: colors[sm.kind] }]}>{r.cva.toFixed(1)}°</Text>

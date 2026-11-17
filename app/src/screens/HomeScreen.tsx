@@ -1,4 +1,5 @@
 // 홈: 박스형 메뉴 + 넘어가는 배너 + 오늘의 팁 + 바로가기 + 최근 측정
+import { moodOf, Turtle } from "../components/Turtle";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,10 +15,10 @@ import { TIPS } from "../utils/routine";
 
 type Slide = { bg: string; t: string; s: string; art: string; tab: TabKey; route?: Route };
 const SLIDES: Slide[] = [
-  { bg: "#0B9B5A", t: "이번 주 목 각도\n얼마나 좋아졌을까?", s: "주간 변화 확인하기", art: "📈", tab: "records" },
-  { bg: "#E0882F", t: "CVA가 뭐예요?\n목 각도 쉽게 알기", s: "1분 설명 읽기", art: "📐", tab: "home", route: "cva" },
-  { bg: "#3A7BD5", t: "50분 앉아 있었다면\n목 운동할 시간", s: "자가운동 타이머 보기", art: "⏰", tab: "exercise" },
-  { bg: "#7A5AF8", t: "혼자서도 정확하게\n노트북 보며 촬영", s: "노트북 촬영 시작하기", art: "💻", tab: "measure", route: "live" },
+  { bg: "#0F6E5E", t: "이번 주 목 각도\n얼마나 좋아졌을까?", s: "주간 변화 확인하기", art: "📈", tab: "records" },
+  { bg: "#8E4E22", t: "CVA가 뭐예요?\n목 각도 쉽게 알기", s: "1분 설명 읽기", art: "📐", tab: "home", route: "cva" },
+  { bg: "#2A5498", t: "50분 앉아 있었다면\n목 운동할 시간", s: "자가운동 타이머 보기", art: "⏰", tab: "exercise" },
+  { bg: "#4E3CB0", t: "혼자서도 정확하게\n노트북 보며 촬영", s: "노트북 촬영 시작하기", art: "💻", tab: "measure", route: "live" },
 ];
 
 export function NeckArt({ size = 150 }: { size?: number }) {
@@ -79,7 +80,7 @@ export default function HomeScreen() {
             <Text style={styles.desc}>옆모습으로 목 각도 재기</Text>
           </View>
           <View style={styles.badge}><Text weight="heavy" style={{ color: colors.warn, fontSize: 12 }}>CVA</Text></View>
-          <View style={styles.scene}><NeckArt size={140} /></View>
+          <View style={styles.scene}><Turtle mood={last ? moodOf(last.cva, last.threshold) : "good"} height={136} /></View>
         </Pressable>
         <View style={{ flex: 1, gap: 10 }}>
           <Pressable accessibilityRole="button" onPress={() => go("my")} style={styles.tile}>
@@ -163,13 +164,13 @@ const styles = StyleSheet.create({
   h3: { fontSize: 19, letterSpacing: -0.3 },
   desc: { fontSize: 13, color: colors.muted },
   badge: { position: "absolute", top: 14, right: 14, borderWidth: 1.5, borderColor: colors.warn, borderRadius: 7, paddingHorizontal: 6, paddingVertical: 1 },
-  scene: { flex: 1, backgroundColor: "#EAF6EF", alignItems: "center", justifyContent: "flex-end", minHeight: 170 },
+  scene: { flex: 1, backgroundColor: "#173560", alignItems: "center", justifyContent: "center", minHeight: 170 },
   tag: { marginTop: 8, alignSelf: "flex-start", borderWidth: 1.5, borderColor: colors.accent, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
   tagText: { color: colors.accent, fontSize: 13 },
   art: { position: "absolute", right: 10, bottom: 8, fontSize: 40 },
   slide: { minHeight: 150, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 22 },
   pager: { position: "absolute", right: 16, bottom: 12, backgroundColor: "#0004", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  tipStrip: { flexDirection: "row", gap: 12, alignItems: "center", backgroundColor: "#FFF4E5", borderRadius: 16, padding: 14 },
+  tipStrip: { flexDirection: "row", gap: 12, alignItems: "center", backgroundColor: "#2A2840", borderRadius: 16, padding: 14 },
   shortcuts: { flexDirection: "row", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingVertical: 16 },
   sc: { flex: 1, alignItems: "center", gap: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },

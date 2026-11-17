@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text as RNText, View, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from "react-native";
 import { colors, fonts } from "../theme";
+import { Turtle } from "./Turtle";
 import { Icon, type IconName } from "./icons";
 
 type Weight = "regular" | "bold" | "heavy";
@@ -24,7 +25,7 @@ export function Button({
 }: { title: string; onPress: () => void; kind?: ButtonKind; disabled?: boolean; style?: StyleProp<ViewStyle>; big?: boolean }) {
   const bg = kind === "primary" ? colors.accent : colors.surface;
   const border = kind === "primary" ? colors.accent : kind === "danger" ? colors.warn : colors.line;
-  const fg = kind === "primary" ? "#FFFFFF" : kind === "danger" ? colors.warn : colors.ink;
+  const fg = kind === "primary" ? colors.onAccent : kind === "danger" ? colors.warn : colors.ink;
   return (
     <Pressable
       accessibilityRole="button"
@@ -66,7 +67,7 @@ export function Segmented<T extends string>({
             onPress={() => onChange(o.value)}
             style={[styles.segBtn, i > 0 && { borderLeftWidth: 1, borderLeftColor: colors.line }, on && { backgroundColor: colors.accent }]}
           >
-            <Text weight={on ? "bold" : "regular"} style={{ color: on ? "#FFFFFF" : colors.ink }}>{o.label}</Text>
+            <Text weight={on ? "bold" : "regular"} style={{ color: on ? colors.onAccent : colors.ink }}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -86,8 +87,8 @@ export function ScreenTitle({ title, sub }: { title: string; sub?: string }) {
 /** 모든 탭의 맨 위 제목 줄: 높이·위치를 똑같이 (아이콘 칸 + 제목 + 오른쪽 칸) */
 export function PageHead({ icon, title, right, brand, onIcon }: { icon: IconName; title: string; right?: ReactNode; brand?: boolean; onIcon?: () => void }) {
   const box = (
-    <View style={[styles.headIcon, brand && { backgroundColor: colors.accent }]}>
-      <Icon name={icon} color={brand ? "#fff" : colors.accent} size={22} width={brand ? 2.2 : 1.9} />
+    <View style={styles.headIcon}>
+      {brand ? <Turtle mood="head" height={30} /> : <Icon name={icon} color={colors.accent} size={22} width={1.9} />}
     </View>
   );
   return (
@@ -129,7 +130,7 @@ export function Chips<T extends string | number>({ options, value, onChange, for
         return (
           <Pressable key={String(o)} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange(o)}
             style={[styles.chip, on && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
-            <Text weight="bold" style={{ color: on ? "#fff" : colors.ink, fontSize: 14 }}>{format(o)}</Text>
+            <Text weight="bold" style={{ color: on ? colors.onAccent : colors.ink, fontSize: 14 }}>{format(o)}</Text>
           </Pressable>
         );
       })}

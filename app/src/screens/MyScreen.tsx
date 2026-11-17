@@ -1,4 +1,5 @@
 // MY: 설정 바로가기(맨 위) + 프로필 요약 + 배지 + 내 목표 설정
+import { Turtle } from "../components/Turtle";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import appJson from "../../app.json";
@@ -90,7 +91,7 @@ export default function MyScreen() {
       {/* 프로필 요약 */}
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View style={styles.avatar}><Text style={{ fontSize: 24 }}>🙂</Text></View>
+          <View style={styles.avatar}><Turtle mood="head" height={36} /></View>
           <View style={{ flex: 1 }}>
             <Text weight="bold" style={{ fontSize: 17 }}>나</Text>
             <Text style={textStyles.muted}>{first ? `${formatDateTime(first.date).split(" ")[0]}부터 함께하는 중` : "오늘부터 시작해요"}</Text>
@@ -162,6 +163,6 @@ const styles = StyleSheet.create({
   sc: { flex: 1, alignItems: "center", gap: 8 },
   avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.accentSoft, alignItems: "center", justifyContent: "center" },
   badgeStrip: { flexDirection: "row", gap: 12, alignItems: "center", backgroundColor: colors.accentSoft, borderRadius: 16, padding: 14 },
-  badge: { backgroundColor: "#fff", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  badge: { backgroundColor: colors.surface2, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   step: { minWidth: 44, paddingHorizontal: 0 },
 });
