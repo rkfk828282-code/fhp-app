@@ -931,7 +931,7 @@ function measureHome() {
     ${last ? `<div class="card">
         <div class="row" style="justify-content:space-between"><b style="font-size:16px">최근 측정 결과</b>
           <span class="muted">${fmt(last.date)}${last.tag !== "none" ? " · " + TAG_LABEL[last.tag] : ""}</span></div>
-        <div class="row" style="gap:10px;flex-wrap:nowrap">${turtle(moodOf(last.cva, last.threshold), 56)}<b style="font-size:15px">${MOOD_TEXT[moodOf(last.cva, last.threshold)]}</b></div>
+        <div class="row" style="gap:10px;flex-wrap:nowrap;justify-content:center">${turtle(moodOf(last.cva, last.threshold), 56)}<b style="font-size:15px">${MOOD_TEXT[moodOf(last.cva, last.threshold)]}</b></div>
         <div class="gauge-card" style="display:flex;flex-direction:column">${gaugeSvg(last.cva, last.threshold)}
           <div class="gauge-num"><span class="num">${last.cva.toFixed(1)}°</span><span class="pill ${moodOf(last.cva, last.threshold) === "good" ? "ok" : "warn"}">${MOOD_LABEL[moodOf(last.cva, last.threshold)]}</span></div>
           <div class="gauge-legend"><span><i style="background:var(--warn)"></i>거북목 ${last.threshold - 5}° 미만</span><span><i style="background:var(--tragus)"></i>주의</span><span><i style="background:var(--ok)"></i>바른 자세 ${last.threshold}° 이상</span></div></div>
@@ -939,10 +939,12 @@ function measureHome() {
       </div>`
       : `<div class="card" style="align-items:center;text-align:center;padding:24px 16px">${turtle("strain", 90)}
         <b style="font-size:16px">아직 측정 결과가 없어요</b><span class="muted">아래 버튼으로 첫 측정을 해 보세요. 결과가 여기에 게이지로 나와요.</span></div>`}
-    <button class="btn primary big" type="button" data-go="photo">📸 &nbsp;폰으로 측정하기</button>
-    ${isWide() ? `<button class="btn big" type="button" data-go="dual">💻 &nbsp;실시간 자세 측정 (노트북)</button>`
-      : `<button class="btn big" type="button" data-go="live">💻 &nbsp;노트북 보면서 촬영</button>`}
-    <span class="muted" style="text-align:center">혼자 잴 때는 폰을 세워 두고 노트북으로 보면서 찍어요 · 기준값 ${S.threshold}° (MY에서 변경)</span>
+    ${isWide() // 노트북(넓은 화면)에서는 실시간 자세 측정만
+      ? `<button class="btn primary big" type="button" data-go="dual">💻 &nbsp;실시간 자세 측정</button>
+        <span class="muted" style="text-align:center">휴대폰 카메라(옆모습)와 웹캠(정면)으로 자세를 실시간으로 확인해요 · 기준값 ${S.threshold}° (MY에서 변경)</span>`
+      : `<button class="btn primary big" type="button" data-go="photo">📸 &nbsp;폰으로 측정하기</button>
+        <button class="btn big" type="button" data-go="live">💻 &nbsp;노트북 보면서 촬영</button>
+        <span class="muted" style="text-align:center">혼자 잴 때는 폰을 세워 두고 노트북으로 보면서 찍어요 · 기준값 ${S.threshold}° (MY에서 변경)</span>`}
     <div class="card tip">
       <b style="color:var(--ok)">정확하게 재는 법</b>
       <ul><li>카메라를 어깨 높이에서 몸과 직각으로 두어요</li><li>귀 이주와 C7(목 뒤 가장 튀어나온 뼈)에 작은 스티커를 붙여요</li><li>편하게 정면을 보고 선 자세에서 찍어요</li></ul>
