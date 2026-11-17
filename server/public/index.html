@@ -1339,7 +1339,7 @@ function compareCard() {
 // 모델 파일은 한 번만 받아서 여러 화면이 같이 씀
 let HUMAN_BUF = null;
 function humanModel() { return HUMAN_BUF || (HUMAN_BUF = fetch("/models/avatar.glb").then((r) => r.arrayBuffer())); }
-function createBust({ yaw = 1.45, line = true, drag = true, dist = 1.55 } = {}) {
+function createBust({ yaw = 1.45, line = true, drag = true, dist = 1.55, keep = false } = {}) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 20);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x2a3f66, 1.05));
@@ -1377,15 +1377,13 @@ function createBust({ yaw = 1.45, line = true, drag = true, dist = 1.55 } = {}) 
   const tq = new THREE.Quaternion(), pq = new THREE.Quaternion();
   function rot(name, ax, ang) {
     const b = B[name]; if (!b || !ang) return;
-    b.parent.updateMatrixWorld(true); b.parent.getWorldQuaternion(pq);
+    b.parent.updateWorldMatrix(true, false); b.parent.getWorldQuaternion(pq);
     tq.setFromAxisAngle(ax, ang);
     b.quaternion.premultiply(pq.clone().invert().multiply(tq).multiply(pq));
-    b.updateMatrixWorld(true);
   }
   function apply(p) {
     const fwd = p.fwd || 0, tilt = p.tilt || 0, tuck = p.tuck || 0, open = p.open || 0, wing = p.wing || 0;
     for (const n in rest) B[n].quaternion.copy(rest[n]);
-    root.updateMatrixWorld(true);
     const X = axis(1, 0, 0), Y = axis(0, 1, 0), Z = axis(0, 0, 1);
     // 팔 내리기(기본) → 몸통 → 어깨 → 목 → 머리 순서로
     rot("LeftArm", Z, -0.45 + 1.05 * wing); rot("RightArm", Z, 0.45 - 1.05 * wing);
@@ -1407,7 +1405,7 @@ function createBust({ yaw = 1.45, line = true, drag = true, dist = 1.55 } = {}) 
   }
   function frame(now) {
     raf = requestAnimationFrame(frame);
-    if (!host || !host.isConnected) { cancelAnimationFrame(raf); raf = 0; renderer.dispose(); renderer.forceContextLoss(); renderer = null; return; }
+    if (!host || !host.isConnected) { cancelAnimationFrame(raf); raf = 0; if (!keep) { renderer.dispose(); renderer.forceContextLoss(); renderer = null; } return; }
     const w = host.clientWidth, h = host.clientHeight;
     if (renderer.domElement.width !== Math.round(w * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
     if (!dragging) curYaw += (tgtYaw - curYaw) * 0.08;
@@ -1417,6 +1415,7 @@ function createBust({ yaw = 1.45, line = true, drag = true, dist = 1.55 } = {}) 
   }
   return {
     mount(el) {
+      if (renderer) { host = el; el.prepend(renderer.domElement); if (!raf) raf = requestAnimationFrame(frame); return true; } // 다시 붙이기
       try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch { return false; }
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
@@ -1432,6 +1431,7 @@ function createBust({ yaw = 1.45, line = true, drag = true, dist = 1.55 } = {}) 
     },
     animate(fn) { poseFn = fn; },
     face(y) { tgtYaw = y; },
+    showLine(v) { line = v; if (!v) [neckLine, dotA, dotB].forEach((m) => { m.visible = false; }); },
   };
 }
 
@@ -1565,8 +1565,9 @@ function exerciseScreen() {
         <button class="btn" type="button" id="exNext">다음</button>
       </div>`;
     if (webglOK()) {
-      const b = createBust({ yaw: MOVES[st.key].yaw, line: st.key === "chin" });
-      b.animate(() => MOVES[st.key].pose(EX.paused ? 0 : holdWave(st.sec - EX.left)));
+      const b = (window.RUN_BUST = window.RUN_BUST || createBust({ yaw: MOVES[st.key].yaw, keep: true }));
+      b.face(MOVES[st.key].yaw); b.showLine(st.key === "chin");
+      b.animate(() => MOVES[st.key].pose(EX.paused ? 0 : holdWave(st.sec - EX.left + (Date.now() - EX.last) / 1000)));
       if (b.mount($("avatar3d"))) $("avatar3d").querySelector(".fallback")?.remove();
     }
     $("exPause2").onclick = () => { EX.paused = !EX.paused; exerciseScreen(); };
@@ -1626,7 +1627,8 @@ function exerciseScreen() {
     <p class="notice">통증이 있으면 바로 멈추세요. 운동 목록은 전문가 지도에 맞게 바꿀 수 있어요.</p>`;
   $("toAlarmSet").onclick = () => { S.myPanel = "alarm"; go("my"); };
   if (webglOK()) {
-    const mk = EX.preview || ROUTINE[0].key, b = createBust({ yaw: MOVES[mk].yaw, line: mk === "chin" });
+    const mk = EX.preview || ROUTINE[0].key, b = (window.PREVIEW_BUST = window.PREVIEW_BUST || createBust({ yaw: MOVES[mk].yaw, keep: true }));
+    b.face(MOVES[mk].yaw); b.showLine(mk === "chin");
     b.animate((t) => MOVES[mk].pose(holdWave(t)));
     if (b.mount($("avatarPreview"))) $("avatarPreview").querySelector(".fallback")?.remove();
   }
