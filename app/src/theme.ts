@@ -1,17 +1,19 @@
-// 앱 전체 디자인 값 (Artifact 시제품과 같은 초록 + Pretendard)
+// 앱 전체 디자인 값 (남색 배경 + 민트 포인트, 거북이 캐릭터 색과 맞춤 + Pretendard)
 export const colors = {
-  bg: "#F4F6F5",
-  surface: "#FFFFFF",
-  ink: "#191F1C",
-  muted: "#5E6A64",
-  line: "#DBE2DE",
-  accent: "#0B9B5A",
-  accentSoft: "#E2F5EA",
-  ok: "#0A8A50",
-  okBg: "#E2F5EA",
-  warn: "#B8432F",
-  warnBg: "#F8E4DF",
-  stage: "#111814",
+  bg: "#0B1B33",
+  surface: "#12284A",
+  surface2: "#183259",
+  ink: "#EAF2FF",
+  muted: "#9DB0CE",
+  line: "#22406B",
+  accent: "#3DDBB8",
+  accentSoft: "#143F4C",
+  onAccent: "#052B27", // 민트 위 글자
+  ok: "#4BE3B0",
+  okBg: "#123F3E",
+  warn: "#FF8A7A",
+  warnBg: "#43232F",
+  stage: "#050C18",
   tragus: "#F2C230", // 귀 이주 점
   c7: "#2EC4D6", // C7 점
 };

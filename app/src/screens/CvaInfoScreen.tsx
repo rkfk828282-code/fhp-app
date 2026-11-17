@@ -1,4 +1,5 @@
 // CVA 설명 (홈 배너 2번째)
+import { Turtle } from "../components/Turtle";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Card, PageHead, Text, textStyles } from "../components/ui";
@@ -17,9 +18,21 @@ export default function CvaInfoScreen() {
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.wrap, { paddingTop: insets.top + 16 }]}>
       <PageHead icon="home" title="CVA가 뭐예요?" onIcon={() => go("home")} />
-      <Card style={{ alignItems: "center", backgroundColor: "#F3FAF6" }}>
+      <Card style={{ alignItems: "center", backgroundColor: colors.surface2 }}>
         <NeckArt size={180} />
         <Text style={textStyles.muted}><Text style={{ color: colors.tragus }}>●</Text> 귀 이주   <Text style={{ color: colors.c7 }}>●</Text> C7   두 선 사이 각도 = CVA</Text>
+      </Card>
+      <Card>
+        <Text weight="bold" style={{ fontSize: 16 }}>거북이 표정으로 보는 내 자세</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+          {([["bad", "거북목", colors.warn, "기준보다 5° 넘게 낮음"], ["strain", "애쓰는 중", colors.tragus, "기준보다 5° 안쪽"], ["good", "바른 자세", colors.ok, "기준 이상"]] as const).map(([m, t, c, d]) => (
+            <View key={m} style={{ flex: 1, alignItems: "center", gap: 4 }}>
+              <Turtle mood={m} height={86} />
+              <Text weight="bold" style={{ color: c, fontSize: 14 }}>{t}</Text>
+              <Text style={[textStyles.muted, { fontSize: 12, textAlign: "center" }]}>{d}</Text>
+            </View>
+          ))}
+        </View>
       </Card>
       <Card>
         <Text weight="heavy" style={{ fontSize: 18, lineHeight: 26 }}>CVA는 목이 앞으로 얼마나 나왔는지 보는 각도예요</Text>

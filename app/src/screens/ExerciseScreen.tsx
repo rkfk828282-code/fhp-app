@@ -1,4 +1,5 @@
 // 운동 탭: 다음 알림까지 남은 시간 + 운동 순서 안내(원형 카운트다운)
+import { Turtle } from "../components/Turtle";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Vibration, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -111,7 +112,7 @@ export default function ExerciseScreen() {
     return (
       <ScrollView contentContainerStyle={[styles.wrap, { paddingTop: insets.top + 28 }]}>
         <Card style={{ alignItems: "center", paddingVertical: 28 }}>
-          <Text style={{ fontSize: 52 }}>🎉</Text>
+          <Turtle mood="good" height={120} />
           <Text weight="heavy" style={{ fontSize: 22 }}>오늘 {todayCount(sessions)}번째 운동 완료!</Text>
           <Text style={textStyles.muted}>연속 {streakDays(sessions)}일째 · 목표 하루 {settings.goal.daily}회</Text>
         </Card>

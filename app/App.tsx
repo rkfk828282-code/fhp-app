@@ -84,7 +84,7 @@ function Main() {
           {tab === "my" && <MyScreen />}
         </View>
         {!fullScreen && <TabBar value={tab} onChange={(t) => go(t)} />}
-        <StatusBar style={fullScreen ? "light" : "dark"} />
+        <StatusBar style="light" />
       </View>
     </NavCtx.Provider>
   );
