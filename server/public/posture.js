@@ -6,6 +6,7 @@
 // - 논문 임계값: 면적 10%, 어깨 수직 -11, 어깨 수평 15 (FHD 영상 픽셀 기준 → 화면 크기에 비례해 조정)
 // 자가 자세 체크용이며 진단이 아닙니다.
 import { FilesetResolver, FaceLandmarker, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
+import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
 
 const $ = (id) => document.getElementById(id);
 const LABEL = {
@@ -17,8 +18,6 @@ const LABEL = {
 };
 const ORDER = ["CORRECT", "TEXT_NECK", "LYING", "LEFT_TILT", "RIGHT_TILT"];
 const DEFAULT_TH = { area: 10, ver: -11, hor: 15 };
-const ALERT_MS = 10000; // 거북목이 10초 넘게 이어지면 경고
-const REALERT_MS = 30000; // 경고를 다시 띄우는 간격
 
 const store = {
   get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } },
@@ -32,7 +31,7 @@ let calibrating = null; // { until, samples: [] }
 let th = { ...DEFAULT_TH, ...store.get("neck.monitor.th", {}) };
 const recent = []; // 최근 판별 결과 (깜빡임 줄이기)
 const stats = Object.fromEntries(ORDER.map((k) => [k, 0]));
-let neckSince = null, lastAlert = 0;
+const neck = neckTimer($("monAlert"), "턱을 살짝 당기고 화면에서 조금 떨어져 앉아 보세요."); // 5분 넘게 이어지면 알림
 
 /* ===== 계산 (논문 식 1~5) ===== */
 const area = (a, b, c) => Math.abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2; // 식 (1) 신발끈 공식
@@ -110,12 +109,6 @@ function draw(W, H, pts, r) {
   for (const p of [pts.nose, pts.eL, pts.eR]) g += `<circle cx="${p.x}" cy="${p.y}" r="${4 * s}" fill="#F2C230" stroke="#000" stroke-width="${1.5 * s}"/>`;
   svg.innerHTML = g;
 }
-function beep() {
-  try {
-    const a = beep.ctx || (beep.ctx = new (window.AudioContext || window.webkitAudioContext)());
-    [0, 0.22].forEach((t) => { const o = a.createOscillator(), gn = a.createGain(); o.frequency.value = 660; gn.gain.value = 0.1; o.connect(gn); gn.connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + 0.15); });
-  } catch {}
-}
 
 /* ===== 반복 ===== */
 function tick() {
@@ -132,7 +125,7 @@ function tick() {
   try { fr = face.detectForVideo(v, now); pr = pose.detectForVideo(v, now); } catch { return; }
   const f = fr.faceLandmarks && fr.faceLandmarks[0], p = pr.landmarks && pr.landmarks[0];
   const ok = f && p && (p[11].visibility ?? 1) > 0.5 && (p[12].visibility ?? 1) > 0.5;
-  if (!ok) { draw(W, H, null); setResult("얼굴과 양쪽 어깨가 보이게 앉아 주세요", "#5E6A64", "", "인식 안 됨"); setNums(null); neckSince = null; $("monAlert").hidden = true; return; }
+  if (!ok) { draw(W, H, null); setResult("얼굴과 양쪽 어깨가 보이게 앉아 주세요", "#5E6A64", "", "인식 안 됨"); setNums(null); neck.update(false, now); return; }
 
   const P = (l) => ({ x: l.x * W, y: l.y * H });
   const hasIris = f.length >= 478;
@@ -162,16 +155,14 @@ function tick() {
   const counts = {}; recent.forEach((x) => { counts[x] = (counts[x] || 0) + 1; });
   const label = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0]; // 최근 0.4초 다수결
   stats[label] += dt;
-  setResult(LABEL[label].t, LABEL[label].c);
+  const held = label === "TEXT_NECK" ? neck.elapsed(now) : 0;
+  setResult(LABEL[label].t, LABEL[label].c, held >= 60000 ? `${fmtMin(held)}째` : "");
   setNums(r);
   draw(W, H, pts, r);
   if (Math.round(now / 1000) !== Math.round((now - dt) / 1000)) renderStats();
 
-  // 거북목 경고
-  if (label === "TEXT_NECK") {
-    neckSince = neckSince ?? now;
-    if (now - neckSince >= ALERT_MS && now - lastAlert >= REALERT_MS) { lastAlert = now; beep(); $("monAlert").hidden = false; }
-  } else { neckSince = null; $("monAlert").hidden = true; }
+  // 거북목이 5분 넘게 이어지면 알림
+  neck.update(label === "TEXT_NECK", now);
 }
 
 /* ===== 켜기 / 끄기 ===== */
@@ -197,12 +188,12 @@ async function start() {
   raf = requestAnimationFrame(tick);
 }
 function stop() {
-  running = false; cancelAnimationFrame(raf); calibrating = null; neckSince = null;
+  running = false; cancelAnimationFrame(raf); calibrating = null; neck.reset();
   $("monOverlay").setAttribute("hidden", ""); $("monOverlay").innerHTML = ""; $("monBadge").hidden = true; $("monAlert").hidden = true;
   renderToggle();
 }
 
-$("monOnOff").addEventListener("click", () => (running ? stop() : start()));
+$("monOnOff").addEventListener("click", () => { if (running) stop(); else { askNotify(); start(); } });
 $("monCalib").addEventListener("click", () => { calibrating = { until: performance.now() + 3000, samples: [] }; $("monCalibInfo").textContent = ""; });
 $("monReset").addEventListener("click", () => { ORDER.forEach((k) => { stats[k] = 0; }); renderStats(); });
 $("monAlertClose").addEventListener("click", () => { $("monAlert").hidden = true; });
