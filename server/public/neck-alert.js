@@ -26,10 +26,13 @@ export const fmtMin = (ms) => `${Math.floor(ms / 60000)}분`;
 export function neckTimer(alertEl, body) {
   let since = null, okSince = null, last = -Infinity;
   const fire = () => {
-    beep();
+    // MY → 운동 알림 → '거북목 5분 지속 알림'에서 고른 방법만 (노트북에는 진동이 없음)
+    const ways = (typeof S !== "undefined" && S.alertWays) || { vibrate: true, push: true, sound: true };
+    if (ways.sound) beep();
+    if (ways.vibrate && navigator.vibrate) navigator.vibrate([200, 100, 200]);
     alertEl.hidden = false;
     try {
-      if ("Notification" in window && Notification.permission === "granted")
+      if (ways.push && "Notification" in window && Notification.permission === "granted")
         new Notification("거북목 자세가 5분 넘게 이어지고 있어요", { body, tag: "neck-alert", renotify: true });
     } catch {}
   };
