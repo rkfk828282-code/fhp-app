@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } f
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
 import { Card, Label, PageHead, Pill, Text, textStyles } from "../components/ui";
+import { useNav } from "../nav";
 import { useAppState, type MeasureRecord } from "../store/AppState";
 import { colors, fonts, TAG_LABEL } from "../theme";
 import { describeCVA } from "../utils/cva";
@@ -11,6 +12,7 @@ import { formatDateTime, formatShortDate } from "../utils/format";
 export default function RecordsScreen({ onMeasure }: { onMeasure: () => void }) {
   const insets = useSafeAreaInsets();
   const { records, settings, deleteRecord } = useAppState();
+  const { showSummary } = useNav();
   const recs = [...records].sort((a, b) => a.date.localeCompare(b.date));
 
   if (recs.length === 0) {
@@ -18,7 +20,7 @@ export default function RecordsScreen({ onMeasure }: { onMeasure: () => void }) 
       <View style={[styles.empty, { paddingTop: insets.top + 16 }]}>
         <PageHead icon="records" title="기록" />
         <Card style={{ alignItems: "center", paddingVertical: 32 }}>
-          <Text weight="bold" style={{ fontSize: 17 }}>아직 측정 기록이 없어요</Text>
+          <Text weight="bold" style={{ fontSize: 16 }}>아직 측정 기록이 없어요</Text>
           <Text style={[textStyles.muted, { textAlign: "center" }]}>측정하고 "기록 저장"을 누르면{"\n"}여기에 날짜별 그래프로 쌓여요.</Text>
           <Pressable onPress={onMeasure} style={styles.cta}><Text weight="bold" style={{ color: colors.onAccent }}>측정하러 가기</Text></Pressable>
         </Card>
@@ -64,10 +66,11 @@ export default function RecordsScreen({ onMeasure }: { onMeasure: () => void }) 
           const d = describeCVA(r.cva, r.threshold);
           return (
             <View key={r.id} style={[styles.row, i > 0 && { borderTopWidth: 1, borderTopColor: colors.line }]}>
-              <View style={{ flex: 1, gap: 2 }}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`${formatDateTime(r.date)} 측정 결과 보기`} style={{ flex: 1, gap: 2 }}
+                onPress={() => { const k = recs.indexOf(r); showSummary({ rec: r, prev: k > 0 ? recs[k - 1] : null }); }}>
                 <Text style={[textStyles.num, { fontSize: 18, color: colors[d.kind] }]}>{r.cva.toFixed(1)}°</Text>
-                <Text style={textStyles.muted}>{formatDateTime(r.date)}{r.tag !== "none" ? ` · ${TAG_LABEL[r.tag]}` : ""}</Text>
-              </View>
+                <Text style={textStyles.muted}>{formatDateTime(r.date)}{r.tag !== "none" ? ` · ${TAG_LABEL[r.tag]}` : ""} · 결과 보기 ›</Text>
+              </Pressable>
               <Pill kind={d.kind}>{d.label}</Pill>
               <Pressable accessibilityLabel="이 기록 삭제" onPress={() => confirmDelete(r)} hitSlop={8} style={{ padding: 6 }}>
                 <Text style={{ color: colors.muted, fontSize: 13 }}>삭제</Text>

@@ -78,7 +78,7 @@ export function Segmented<T extends string>({
 export function ScreenTitle({ title, sub }: { title: string; sub?: string }) {
   return (
     <View style={{ gap: 2, marginBottom: 4 }}>
-      <Text weight="heavy" style={{ fontSize: 24, letterSpacing: -0.3 }}>{title}</Text>
+      <Text weight="heavy" style={{ fontSize: 22, letterSpacing: -0.3 }}>{title}</Text>
       {!!sub && <Text style={{ color: colors.muted, fontSize: 13 }}>{sub}</Text>}
     </View>
   );
@@ -130,7 +130,7 @@ export function Chips<T extends string | number>({ options, value, onChange, for
         return (
           <Pressable key={String(o)} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange(o)}
             style={[styles.chip, on && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
-            <Text weight="bold" style={{ color: on ? colors.onAccent : colors.ink, fontSize: 14 }}>{format(o)}</Text>
+            <Text weight="bold" style={{ color: on ? colors.onAccent : colors.ink, fontSize: 15 }}>{format(o)}</Text>
           </Pressable>
         );
       })}

@@ -134,7 +134,7 @@ export default function PhotoMeasureScreen({ onBack }: { onBack: () => void }) {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}>
         <Card>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Text style={[textStyles.num, { fontSize: 44, color: result ? colors[result.kind] : colors.line }]}>
+            <Text style={[textStyles.num, { fontSize: 36, color: result ? colors[result.kind] : colors.line }]}>
               {cva !== null ? `${cva.toFixed(1)}°` : "--.-°"}
             </Text>
             <View style={{ gap: 4, flex: 1 }}>

@@ -1,8 +1,9 @@
 // 측정 완료 후 결과 요약
+import { BeforeAfterBars, Gauge } from "../components/Gauge";
 import { MOOD_TEXT, moodOf, Turtle } from "../components/Turtle";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, Card, KV, Label, PageHead, Pill, Text, textStyles } from "../components/ui";
+import { Button, Card, KV, PageHead, Text, textStyles } from "../components/ui";
 import { useNav } from "../nav";
 import { useAppState } from "../store/AppState";
 import { colors, TAG_LABEL } from "../theme";
@@ -17,6 +18,10 @@ export default function SummaryScreen() {
   const r = summary.rec;
   const sm = summarize(r, summary.prev, settings.goal.cva);
   const sign = (v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}°`;
+  // '운동 후' 측정이면 같은 날 그 전에 잰 '운동 전'과 비교
+  const before = r.tag === "after"
+    ? [...records].filter((x) => x.tag === "before" && x.date < r.date && x.date.slice(0, 10) === r.date.slice(0, 10)).sort((a, b) => b.date.localeCompare(a.date))[0]
+    : undefined;
   const quality = r.roll === undefined ? "촬영할 때 폰 기울기 정보가 없어요."
     : Math.abs(r.roll) <= 2 ? `촬영할 때 폰이 수평이었어요 (좌우 ${r.roll.toFixed(1)}°).`
     : `촬영할 때 폰이 ${Math.abs(r.roll).toFixed(1)}° 기울어 있었어요. 다음엔 수평 표시가 초록일 때 찍어 주세요.`;
@@ -28,19 +33,26 @@ export default function SummaryScreen() {
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.surface2 }}>
         <Turtle mood={moodOf(r.cva, r.threshold)} height={104} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text weight="bold" style={{ fontSize: 17 }}>{MOOD_TEXT[moodOf(r.cva, r.threshold)]}</Text>
+          <Text weight="bold" style={{ fontSize: 16 }}>{MOOD_TEXT[moodOf(r.cva, r.threshold)]}</Text>
           <Text style={textStyles.muted}>기준 {r.threshold}° · {r.cva >= r.threshold ? "기준 범위" : r.cva >= r.threshold - 5 ? "기준보다 조금 낮음" : "기준보다 많이 낮음"}</Text>
         </View>
       </Card>
 
-      <Card style={{ flexDirection: "row", alignItems: "center", gap: 18 }}>
-        <Text style={[textStyles.num, { fontSize: 52, color: colors[sm.kind] }]}>{r.cva.toFixed(1)}°</Text>
-        <View style={{ gap: 6, flex: 1, alignItems: "flex-start" }}>
-          <Label>CVA 두개척추각</Label>
-          <Pill kind={sm.kind}>{sm.label}</Pill>
-          <Text style={textStyles.muted}>{TAG_LABEL[r.tag]} · {r.source === "laptop" ? "노트북 두 카메라" : "폰 촬영"}</Text>
-        </View>
+      <Card>
+        <Text weight="bold" style={{ fontSize: 16 }}>경추 각도</Text>
+        <Gauge cva={r.cva} threshold={r.threshold} sub={`CVA 두개척추각 · ${TAG_LABEL[r.tag]} · ${r.source === "laptop" ? "노트북" : "폰 촬영"}`} />
       </Card>
+
+      {!!before && (
+        <Card>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text weight="bold" style={{ fontSize: 16 }}>운동 전·후 비교</Text>
+            <Text style={[textStyles.num, { fontSize: 22 }]}>{sign(r.cva - before.cva)}</Text>
+          </View>
+          <BeforeAfterBars before={before.cva} after={r.cva} />
+          <Text style={textStyles.muted}>{r.cva > before.cva ? "운동하고 나서 목이 더 펴졌어요." : "이번에는 차이가 거의 없었어요. 동작을 천천히 정확하게 해 봐요."}</Text>
+        </Card>
+      )}
 
       <Card>
         <Text weight="bold" style={{ fontSize: 16 }}>한눈에 요약</Text>
@@ -59,13 +71,13 @@ export default function SummaryScreen() {
       {!!summary.side && (
         <View style={styles.thumb}>
           <Image source={{ uri: summary.side }} style={{ width: "100%", height: 220 }} resizeMode="contain" />
-          <Text style={{ color: "#fff", fontSize: 12.5, padding: 8 }}>옆모습</Text>
+          <Text style={{ color: "#fff", fontSize: 13, padding: 8 }}>옆모습</Text>
         </View>
       )}
 
       <Card style={{ backgroundColor: colors.accentSoft, borderColor: colors.accentSoft }}>
         <Text weight="bold" style={{ color: colors.ok }}>이렇게 해 보세요</Text>
-        {sm.tips.map((t) => <Text key={t} style={{ fontSize: 13.5, lineHeight: 21 }}>•  {t}</Text>)}
+        {sm.tips.map((t) => <Text key={t} style={{ fontSize: 13, lineHeight: 21 }}>•  {t}</Text>)}
       </Card>
 
       <View style={{ flexDirection: "row", gap: 8 }}>

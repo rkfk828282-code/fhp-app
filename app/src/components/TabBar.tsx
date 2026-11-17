@@ -24,7 +24,7 @@ export function TabBar({ value, onChange }: { value: TabKey; onChange: (t: TabKe
         return (
           <Pressable key={t.key} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => onChange(t.key)} style={styles.tab}>
             <Icon name={t.key} color={color} />
-            <Text weight={on ? "bold" : "regular"} style={{ color, fontSize: 12 }}>{t.label}</Text>
+            <Text style={{ color, fontSize: 12 }}>{t.label}</Text>
           </Pressable>
         );
       })}
