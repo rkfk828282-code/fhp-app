@@ -5,6 +5,7 @@
 import { FilesetResolver, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
 import { features, jitter, pickPoints, predict, readout, train } from "/side-model.js";
 import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
+import { bgLoop, grabFrame, setTabStatus } from "/bg-loop.js";
 
 const $ = (id) => document.getElementById(id);
 const GOOD = { t: "바른 자세", c: "#0B9B5A" }, BAD = { t: "거북목", c: "#B8432F" }, GRAY = "#5E6A64";
@@ -19,7 +20,7 @@ const store = {
 };
 
 let pose = null, loading = null;
-let running = false, raf = 0, lastRun = 0, lastTick = 0;
+let running = false, stopLoop = null, busy = false, lastRun = 0, lastTick = 0;
 let samples = store.get(K_SAMPLES, { good: [], bad: [] }); // 녹화한 골격 점 (H로 나눈 값)
 let model = store.get(K_MODEL, null); // { net, valAcc, trainAcc, n, at }
 let rec = null; // { kind, until }
@@ -88,16 +89,19 @@ function draw(W, H, pts, color) {
 }
 
 /* ===== 반복 ===== */
-function tick() {
-  if (!running) return;
-  raf = requestAnimationFrame(tick);
-  const now = performance.now();
-  if (now - lastRun < 66) return; // 약 15 FPS
-  const dt = lastTick ? Math.min(500, now - lastTick) : 0;
+// 한 번 돌기: 판별할 그림을 가져와서(다른 창을 봐도 됨) step 실행
+async function tick() {
+  if (!running || busy) return;
+  if (performance.now() - lastRun < 61) return;
+  busy = true;
+  const frame = await grabFrame($("sideVideo"));
+  try { if (frame && running) step(frame, performance.now()); }
+  finally { if (frame) frame.close(); busy = false; }
+}
+function step(frame, now) {
+  const dt = lastTick ? Math.min(1500, now - lastTick) : 0;
   lastRun = now; lastTick = now;
-  const v = $("sideVideo");
-  if (!v || v.readyState < 2 || !v.videoWidth) return;
-  const W = v.videoWidth, H = v.videoHeight;
+  const v = frame.img, W = frame.W, H = frame.H;
   let res;
   try { res = pose.detectForVideo(v, now); } catch { return; }
   const lm = res.landmarks && res.landmarks[0];
@@ -141,6 +145,7 @@ function tick() {
   if (Math.round(now / 1000) !== Math.round((now - dt) / 1000)) renderStats();
 
   neck.update(label === "bad", now); // 5분 넘게 이어지면 알림
+  setTabStatus("side", held >= 60000 ? `🐢 거북목 ${fmtMin(held)}째` : "");
 }
 
 /* ===== 학습 ===== */
@@ -187,11 +192,11 @@ async function start() {
   if (!running) return;
   $("sideMonOverlay").removeAttribute("hidden");
   lastTick = 0; renderStats(); renderLearn();
-  raf = requestAnimationFrame(tick);
+  stopLoop = bgLoop(tick, 66, 500); // 안 보일 때는 0.5초마다
 }
 function stop(keepWanted = false) {
   if (!keepWanted) wanted = false;
-  running = false; cancelAnimationFrame(raf); rec = null; neck.reset();
+  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("side", ""); rec = null; neck.reset();
   $("sideMonOverlay").setAttribute("hidden", ""); $("sideMonOverlay").innerHTML = ""; $("sideMonBadge").hidden = true; $("sideMonAlert").hidden = true;
   renderToggle();
 }

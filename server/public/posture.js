@@ -7,6 +7,7 @@
 // 자가 자세 체크용이며 진단이 아닙니다.
 import { FilesetResolver, FaceLandmarker, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
 import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
+import { bgLoop, grabFrame, setTabStatus } from "/bg-loop.js";
 
 const $ = (id) => document.getElementById(id);
 const LABEL = {
@@ -25,7 +26,7 @@ const store = {
 };
 
 let face = null, pose = null, loading = null;
-let running = false, raf = 0, lastRun = 0, lastTick = 0;
+let running = false, stopLoop = null, busy = false, lastRun = 0, lastTick = 0;
 let calib = store.get("neck.monitor.calib", null); // { S, L:{x,y}, R:{x,y} }
 let calibrating = null; // { until, samples: [] }
 let th = { ...DEFAULT_TH, ...store.get("neck.monitor.th", {}) };
@@ -111,16 +112,19 @@ function draw(W, H, pts, r) {
 }
 
 /* ===== 반복 ===== */
-function tick() {
-  if (!running) return;
-  raf = requestAnimationFrame(tick);
-  const now = performance.now();
-  if (now - lastRun < 50) return; // 약 20 FPS (논문과 비슷한 속도)
-  const dt = lastTick ? Math.min(500, now - lastTick) : 0;
+// 한 번 돌기: 판별할 그림을 가져와서(다른 창을 봐도 됨) step 실행
+async function tick() {
+  if (!running || busy) return;
+  if (performance.now() - lastRun < 45) return;
+  busy = true;
+  const frame = await grabFrame($("frontVideo"));
+  try { if (frame && running) step(frame, performance.now()); }
+  finally { if (frame) frame.close(); busy = false; }
+}
+function step(frame, now) {
+  const dt = lastTick ? Math.min(1500, now - lastTick) : 0;
   lastRun = now; lastTick = now;
-  const v = $("frontVideo");
-  if (!v || v.readyState < 2 || !v.videoWidth) return;
-  const W = v.videoWidth, H = v.videoHeight;
+  const v = frame.img, W = frame.W, H = frame.H;
   let fr, pr;
   try { fr = face.detectForVideo(v, now); pr = pose.detectForVideo(v, now); } catch { return; }
   const f = fr.faceLandmarks && fr.faceLandmarks[0], p = pr.landmarks && pr.landmarks[0];
@@ -163,6 +167,7 @@ function tick() {
 
   // 거북목이 5분 넘게 이어지면 알림
   neck.update(label === "TEXT_NECK", now);
+  setTabStatus("front", held >= 60000 ? `🐢 거북목 ${fmtMin(held)}째` : "");
 }
 
 /* ===== 켜기 / 끄기 ===== */
@@ -185,10 +190,10 @@ async function start() {
   $("monOverlay").removeAttribute("hidden");
   lastTick = 0; renderStats();
   $("monCalibInfo").textContent = calib ? `저장된 기준 자세 사용 중 (${new Date(calib.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })})` : "";
-  raf = requestAnimationFrame(tick);
+  stopLoop = bgLoop(tick, 50, 500); // 안 보일 때는 0.5초마다
 }
 function stop() {
-  running = false; cancelAnimationFrame(raf); calibrating = null; neck.reset();
+  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("front", ""); calibrating = null; neck.reset();
   $("monOverlay").setAttribute("hidden", ""); $("monOverlay").innerHTML = ""; $("monBadge").hidden = true; $("monAlert").hidden = true;
   renderToggle();
 }
