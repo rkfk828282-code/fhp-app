@@ -6,6 +6,9 @@
 <title>거북목 체크</title>
 <link rel="preload" href="/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<!-- 3D 운동 아바타: three.js + glTF 불러오기 (모델은 /models/avatar.glb) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <style>
 /* 글꼴은 이 서버에서 직접 보냄 (public/fonts) */
 @font-face { font-family: "Pretendard"; src: url("/fonts/PretendardVariable.woff2") format("woff2-variations"), url("/fonts/PretendardVariable.woff2") format("woff2"); font-weight: 45 920; font-display: swap; }
@@ -61,6 +64,80 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; min-width: 0; }
 .stat .num { font-size: 22px; display: block; }
+/* 기록: 달력 (조용하게: 날짜 숫자 + 운동한 날 동그라미 + 측정한 날 점) */
+.cal { gap: 10px; }
+.cal-nav { display: flex; align-items: center; gap: 4px; }
+.cal-nav b { font-size: 17px; flex: 1; text-align: center; }
+.cal-nav .icon-btn { font-size: 26px; line-height: 1; color: var(--muted); }
+.month-sum { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; padding: 4px 0 10px; border-bottom: 1px solid var(--line); }
+.month-sum > div { display: flex; flex-direction: column; gap: 2px; }
+.month-sum .num { font-size: 20px; }
+.month-sum small { font-size: 12px; color: var(--muted); margin-left: 1px; font-weight: 600; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 4px; }
+.cal-grid.head span { text-align: center; font-size: 12px; color: var(--muted); }
+.cal-grid .day { appearance: none; border: 0; background: none; font: inherit; color: var(--ink); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 0; }
+.cal-grid .day .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.cal-grid .day.ex .n { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.cal-grid .day.today .n { box-shadow: inset 0 0 0 1.5px var(--muted); }
+.cal-grid .day.sel .n { background: var(--accent); color: var(--on-accent); font-weight: 700; box-shadow: none; }
+.cal-grid .day i { width: 4px; height: 4px; border-radius: 50%; }
+.cal-grid .day i.ms { background: var(--ink); opacity: .7; }
+.cal-legend { display: flex; justify-content: center; gap: 16px; font-size: 12px; color: var(--muted); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.lg-ex { width: 14px; height: 14px; border-radius: 50%; background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); display: inline-block; }
+.lg-ms { width: 5px; height: 5px; border-radius: 50%; background: var(--ink); opacity: .7; display: inline-block; }
+.lg-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+.seg.small button { min-height: 32px; font-size: 13px; padding: 0 10px; white-space: nowrap; }
+.chart { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; font-family: var(--font); overflow: visible; } /* 넓은 화면에서 글자가 커지지 않게 */
+.list.flat { padding: 0; }
+.ev-ic { width: 40px; height: 40px; display: grid; place-items: center; font-size: 22px; background: var(--surface-2); border-radius: 12px; flex: none; }
+.list .item .turtle { flex: none; }
+.pair-note { background: var(--surface-2); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; color: var(--muted); }
+.pair-note b { color: var(--ink); margin-left: 4px; }
+.hero-cmp { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+/* 3D 흉상 · 게임형 운동 */
+.stage3d { position: relative; width: 100%; height: 250px; border-radius: 16px; background: radial-gradient(circle at 50% 38%, #24508A, #0E2140 72%); overflow: hidden; display: grid; place-items: center; }
+.stage3d.small { height: 220px; }
+.stage3d.mini { height: 150px; border-radius: 12px; }
+.stage3d canvas { position: absolute; inset: 0; }
+.stage3d .fallback { font-size: 48px; }
+.move-arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.stage3d .combo { position: absolute; bottom: 18px; left: 16px; font-size: 22px; font-weight: 800; color: var(--tragus); text-shadow: 0 2px 10px #0008; }
+.stage3d .round-btn { position: absolute; right: 12px; bottom: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #ffffff26; color: #fff; font-size: 14px; cursor: pointer; }
+.game { gap: 12px; }
+.mission { display: flex; flex-direction: column; gap: 4px; text-align: center; background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.mission b { font-size: 18px; }
+.mission em { font-style: normal; color: var(--accent); }
+.mission-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--muted); }
+.mission-row b { color: var(--ink); font-size: 18px; }
+.bar.thick { height: 12px; border-radius: 6px; margin: 0; }
+.bar.thick i { border-radius: 6px; transition: width .25s linear; }
+.guide-card { gap: 4px; }
+.pair3d { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; width: 100%; max-width: 520px; margin: 0 auto; }
+.stage3d:not(.mini) { max-width: 560px; margin: 0 auto; }
+.pair3d figure { margin: 0; display: flex; flex-direction: column; gap: 6px; text-align: center; }
+.pair3d figcaption { display: flex; flex-direction: column; font-size: 13px; }
+.pair-arrow { font-size: 22px; color: var(--muted); }
+/* 3D 아바타 · 게이지 · 전후 막대 · 알림 방식 */
+.avatar3d { width: 100%; height: 240px; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #1F4677, #0E2140 75%); display: grid; place-items: center; overflow: hidden; position: relative; }
+.avatar3d .fallback { font-size: 48px; }
+.gauge-card { align-items: center; gap: 6px; }
+.gauge { width: 100%; max-width: 300px; height: auto; font-family: var(--font); }
+.gauge-num { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+.gauge-num .num { font-size: 40px; line-height: 1; }
+.gauge-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.gauge-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+.ba-bars { display: flex; align-items: flex-end; justify-content: center; gap: 22px; padding-top: 6px; }
+.ba-bars > div { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ba-bars i { width: 56px; border-radius: 8px 8px 0 0; display: block; }
+.ba-bars .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ba-arrow { font-size: 22px; color: var(--muted); padding-bottom: 60px; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+.ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.way { appearance: none; font: inherit; font-weight: 600; font-size: 13px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.way span { font-size: 22px; opacity: .5; }
+.way[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); }
+.way[aria-pressed="true"] span { opacity: 1; }
 .list { padding: 4px 16px; gap: 0; }
 .list .item { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
 .list .item + .item { border-top: 1px solid var(--line); }
@@ -583,17 +660,17 @@ function exampleRecords() {
   return vals.map((v, i) => ({ id: "ex" + i, date: new Date(base + i * 2.7 * 864e5).toISOString(), cva: v, threshold: 50, tag: i === 6 ? "before" : i === 7 ? "after" : "none", example: true }));
 }
 function load() {
-  const base = { records: [], threshold: 50, sessions: [], goal: { cva: 52, daily: 3 }, reminder: { on: false, min: 50, nextAt: null }, monitorAuto: false };
+  const base = { records: [], threshold: 50, sessions: [], goal: { cva: 52, daily: 3 }, reminder: { on: false, min: 50, nextAt: null }, alertWays: { vibrate: true, push: true, sound: true }, monitorAuto: false };
   try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && Array.isArray(v.records)) return { ...base, ...v, goal: { ...base.goal, ...(v.goal || {}) }, reminder: { ...base.reminder, ...(v.reminder || {}) } }; } catch {}
   return base;
 }
-function persist() { try { localStorage.setItem(KEY, JSON.stringify({ records: S.records, threshold: S.threshold, sessions: S.sessions, goal: S.goal, reminder: S.reminder, monitorAuto: S.monitorAuto })); } catch {} }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify({ records: S.records, threshold: S.threshold, sessions: S.sessions, goal: S.goal, reminder: S.reminder, monitorAuto: S.monitorAuto, alertWays: S.alertWays })); } catch {} }
 
 const saved = load();
 const S = {
   tab: "home", route: "home",        // 측정 탭 안: home | photo | live
   records: saved.records, threshold: saved.threshold,
-  sessions: saved.sessions, goal: saved.goal, reminder: saved.reminder, myPanel: null, monitorAuto: !!saved.monitorAuto,
+  sessions: saved.sessions, goal: saved.goal, reminder: saved.reminder, myPanel: null, alertWays: saved.alertWays || { vibrate: true, push: true, sound: true }, monitorAuto: !!saved.monitorAuto,
   photo: null, pts: { tragus: null, c7: null }, tag: "none", saved: false, confirmClear: false,
 };
 const $ = (id) => document.getElementById(id);
@@ -673,6 +750,21 @@ function render() {
   window.scrollTo(0, 0);
 }
 
+/* ===== CVA 게이지 (시각적 피드백): 30°~65° 반원, 거북목·주의·바른 자세 구간 + 바늘 ===== */
+function gaugeSvg(cva, th) {
+  const lo = 30, hi = 65, cx = 150, cy = 140, R = 110, sw = 18;
+  const ang = (v) => Math.PI * (1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo));
+  const pt = (v, r = R) => [cx + r * Math.cos(ang(v)), cy - r * Math.sin(ang(v))];
+  const arc = (a, b, c) => { const [x1, y1] = pt(a), [x2, y2] = pt(b); return `<path d="M${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2}" stroke="${c}" stroke-width="${sw}" fill="none"/>`; };
+  const [nx, ny] = pt(cva, R - 30), mood = moodOf(cva, th);
+  return `<svg viewBox="0 0 300 175" class="gauge" role="img" aria-label="CVA ${cva.toFixed(1)}도, ${MOOD_LABEL[mood]}">
+    ${arc(lo, th - 5 - 0.4, "var(--warn)")}${arc(th - 5 + 0.4, th - 0.4, "var(--tragus)")}${arc(th + 0.4, hi, "var(--ok)")}
+    ${[lo, th - 5, th, hi].map((v) => { const [x, y] = pt(v, R + 22); return `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" fill="var(--muted)">${v}°</text>`; }).join("")}
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="9" fill="var(--ink)"/><circle cx="${cx}" cy="${cy}" r="4" fill="var(--surface)"/>
+  </svg>`;
+}
+const MOOD_LABEL = { good: "바른 자세", strain: "주의", bad: "거북목" };
 /* ===== 홈 (HomeScreen) ===== */
 /* ===== 거북이 캐릭터 (사용자가 준 그림: public/img/turtle_*.png) ===== */
 // mood: good 바른 자세 / strain 애쓰는 중 / bad 거북목
@@ -1003,13 +1095,35 @@ function summaryScreen() {
       ${turtle(moodOf(r.cva, r.threshold), 112)}
       <div><b style="font-size:17px">${MOOD_TEXT[moodOf(r.cva, r.threshold)]}</b><span class="muted" style="display:block">기준 ${r.threshold}° · ${r.cva >= r.threshold ? "기준 범위" : r.cva >= r.threshold - 5 ? "기준보다 조금 낮음" : "기준보다 많이 낮음"}</span></div>
     </div>
-    <div class="card result-hero">
-      <span class="num" style="font-size:56px;color:var(--${d.kind});line-height:1">${r.cva.toFixed(1)}°</span>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
-        <span class="label">CVA 두개척추각</span><span class="pill ${d.kind}">${d.label}</span>
-        <span class="muted">${TAG_LABEL[r.tag]} · ${r.source === "laptop" ? "노트북 두 카메라" : "폰 촬영"}</span>
+    <div class="card">
+      <b style="font-size:16px">내 자세 한눈에 보기</b>
+      <div class="pair3d">
+        <figure><div class="stage3d mini" id="bustMe"></div><figcaption><b>지금 내 자세</b><span class="muted">${r.cva.toFixed(1)}°</span></figcaption></figure>
+        <span class="pair-arrow" aria-hidden="true">→</span>
+        <figure><div class="stage3d mini" id="bustGood"></div><figcaption><b>바른 자세</b><span class="muted">${r.threshold}° 이상</span></figcaption></figure>
       </div>
+      <span class="muted" style="font-size:12px">목 선(귀–목 뒤)이 빨갈수록 머리가 앞으로 나와 있어요. 3D 예시 아바타예요.</span>
     </div>
+    <div class="card gauge-card">
+      <b style="font-size:16px;align-self:flex-start">경추 각도</b>
+      ${gaugeSvg(r.cva, r.threshold)}
+      <div class="gauge-num"><span class="num">${r.cva.toFixed(1)}°</span><span class="pill ${moodOf(r.cva, r.threshold) === "good" ? "ok" : "warn"}">${MOOD_LABEL[moodOf(r.cva, r.threshold)]}</span></div>
+      <span class="muted" style="text-align:center">CVA 두개척추각 · ${TAG_LABEL[r.tag]} · ${r.source === "laptop" ? "노트북" : "폰 촬영"}</span>
+      <div class="gauge-legend"><span><i style="background:var(--warn)"></i>거북목 ${r.threshold - 5}° 미만</span><span><i style="background:var(--tragus)"></i>주의</span><span><i style="background:var(--ok)"></i>바른 자세 ${r.threshold}° 이상</span></div>
+    </div>
+    ${(() => { // 전후 비교: 운동 후 측정이면 같은 날 운동 전과 막대 2개로
+      if (r.tag !== "after") return "";
+      const b = [...S.records].filter((x) => x.tag === "before" && x.date < r.date && x.date.slice(0, 10) === r.date.slice(0, 10)).sort((a, c) => c.date.localeCompare(a.date))[0];
+      if (!b) return "";
+      const lo = Math.min(b.cva, r.cva) - 6, H = 120, bh = (v) => (v - lo) / (Math.max(b.cva, r.cva) - lo) * H, dlt = r.cva - b.cva;
+      return `<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:16px">운동 전·후 비교</b><b class="num" style="font-size:22px">${dlt >= 0 ? "+" : ""}${dlt.toFixed(1)}°</b></div>
+        <div class="ba-bars">
+          <div><span class="v">${b.cva.toFixed(1)}°</span><i style="height:${bh(b.cva)}px;background:${C_BEFORE}"></i><span class="muted">운동 전</span></div>
+          <span class="ba-arrow" aria-hidden="true">→</span>
+          <div><span class="v">${r.cva.toFixed(1)}°</span><i style="height:${bh(r.cva)}px;background:${C_AFTER}"></i><span class="muted">운동 후</span></div>
+        </div>
+        <span class="muted">${dlt > 0 ? "운동하고 나서 목이 더 펴졌어요." : "이번에는 차이가 거의 없었어요. 동작을 천천히 정확하게 해 봐요."}</span></div>`;
+    })()}
     <div class="card">
       <b style="font-size:16px">한눈에 요약</b>
       <p class="summary-text">${sentence}</p>
@@ -1028,6 +1142,11 @@ function summaryScreen() {
       <button class="btn primary" type="button" id="smNext">${d.kind === "warn" ? "목 운동 시작" : "다시 측정"}</button>
     </div>
     <p class="notice">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>`;
+  if (webglOK()) {
+    const me = createBust({ yaw: 1.5, drag: false, dist: 1.3 }), ok = createBust({ yaw: 1.5, drag: false, dist: 1.3 }), f = fwdOf(r.cva, r.threshold);
+    me.animate(() => ({ fwd: f })); ok.animate(() => ({ fwd: 0 }));
+    me.mount($("bustMe")); ok.mount($("bustGood"));
+  }
   $("smRecords").onclick = () => go("records");
   $("smNext").onclick = () => {
     if (d.kind === "warn") { go("exercise"); return; }
@@ -1058,62 +1177,303 @@ function liveSend() {
 }
 
 /* ===== 기록 (RecordsScreen) ===== */
+/* ===== 기록 (RecordsScreen): 달력(월간·주간·일간) + 운동 전·후 비교 ===== */
+const C_BEFORE = "#8C7FE8", C_AFTER = "#16A585"; // 운동 전 / 운동 후 (남색 배경에서 색약 검사 통과)
+const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
+const dayOf = (iso) => dayKey(new Date(iso));
+const parseDay = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = parseDay(k); d.setDate(d.getDate() + n); return dayKey(d); };
+const recsOn = (k) => sorted().filter((r) => dayOf(r.date) === k);
+const sessOn = (k) => S.sessions.filter((x) => x.day === k);
+const avgOf = (list) => list.length ? list.reduce((s, r) => s + r.cva, 0) / list.length : null;
+const moodColor = (cva, th) => `var(--${moodOf(cva, th) === "good" ? "ok" : moodOf(cva, th) === "strain" ? "tragus" : "warn"})`;
+const sgn = (v, d = 1) => (v >= 0 ? "+" : "") + v.toFixed(d);
+/** 운동 전 측정 다음, 같은 날 운동 후 측정 = 한 쌍 */
+function beforeAfterPairs(from, to) {
+  const recs = sorted(), out = [];
+  recs.forEach((b, i) => {
+    if (b.tag !== "before") return;
+    const k = dayOf(b.date); if (k < from || k > to) return;
+    const a = recs.slice(i + 1).find((r) => r.tag === "after" && dayOf(r.date) === k);
+    if (a) out.push({ day: k, b, a, d: a.cva - b.cva });
+  });
+  return out;
+}
+function periodOf(view, k) {
+  if (view === "month") { const d = parseDay(k); return [dayKey(new Date(d.getFullYear(), d.getMonth(), 1)), dayKey(new Date(d.getFullYear(), d.getMonth() + 1, 0))]; }
+  if (view === "week") { const s = addDays(k, -parseDay(k).getDay()); return [s, addDays(s, 6)]; }
+  return [k, k];
+}
+
 function recordsScreen() {
-  const recs = sorted();
-  if (!recs.length) {
-    $("view").innerHTML = `${pageHead("records", "기록")}<div class="card" style="align-items:center;text-align:center;padding:32px 16px">
-      <b style="font-size:17px">아직 측정 기록이 없어요</b><span class="muted">측정하고 "기록 저장"을 누르면<br>여기에 날짜별 그래프로 쌓여요.</span>
-      <button class="btn primary" type="button" id="toMeasure">측정하러 가기</button></div>`;
-    $("toMeasure").onclick = () => go("measure");
-    return;
-  }
-  const last = recs[recs.length - 1], avg = recs.reduce((s, r) => s + r.cva, 0) / recs.length;
-  const lb = [...recs].reverse().find((r) => r.tag === "before"), la = lb && [...recs].reverse().find((r) => r.tag === "after" && r.date > lb.date);
-  const diff = lb && la ? la.cva - lb.cva : null;
-  const hasEx = recs.some((r) => r.example);
+  S.rd = S.rd || dayKey(); S.rm = S.rm || S.rd.slice(0, 7); S.rt = S.rt || "week";
+  const [y, m] = S.rm.split("-").map(Number), from = `${S.rm}-01`, to = dayKey(new Date(y, m, 0));
+  const recM = sorted().filter((r) => { const x = dayOf(r.date); return x >= from && x <= to; });
+  const exDays = new Set(S.sessions.filter((x) => x.day >= from && x.day <= to).map((x) => x.day)).size;
+  const hasEx = S.records.some((r) => r.example) || S.sessions.some((x) => x.example);
   $("view").innerHTML = `
-    ${pageHead("records", "기록", `${hasEx ? '<span class="chip">예시 포함</span>' : ""}<span class="muted">총 ${recs.length}회</span>`)}
-    <div class="stats">
-      <div class="stat"><span class="label">최근</span><span class="num">${last.cva.toFixed(1)}°</span></div>
-      <div class="stat"><span class="label">평균</span><span class="num">${avg.toFixed(1)}°</span></div>
-      <div class="stat"><span class="label">운동 전→후</span><span class="num">${diff === null ? "–" : (diff >= 0 ? "+" : "") + diff.toFixed(1) + "°"}</span></div>
+    ${pageHead("records", "기록", hasEx ? '<span class="chip">예시 포함</span>' : "")}
+    <div class="card cal">
+      <div class="cal-nav">
+        <button class="icon-btn" type="button" id="calPrev" aria-label="이전 달">‹</button>
+        <b>${y}년 ${m}월</b>
+        <button class="icon-btn" type="button" id="calNext" aria-label="다음 달">›</button>
+      </div>
+      <div class="month-sum">
+        <div><span class="label">운동한 날</span><b class="num">${exDays}<small>일</small></b></div>
+        <div><span class="label">평균 CVA</span><b class="num">${recM.length ? avgOf(recM).toFixed(1) + "°" : "–"}</b></div>
+        <div><span class="label">측정</span><b class="num">${recM.length}<small>회</small></b></div>
+      </div>
+      ${calendarGrid(y, m - 1)}
+      <div class="cal-legend"><span><i class="lg-ex"></i>운동한 날</span><span><i class="lg-ms"></i>측정한 날</span></div>
     </div>
-    <div class="card"><b style="font-size:16px">날짜별 CVA</b>${chart(recs.slice(-20))}
-      <div class="row" style="gap:14px;flex-wrap:wrap" >
-        <span class="muted"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--tragus)"></span> 운동 전</span>
-        <span class="muted"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c7)"></span> 운동 후</span>
-        <span class="muted"><span style="display:inline-block;width:14px;border-top:2px dashed var(--warn);vertical-align:middle"></span> 기준 ${S.threshold}°</span>
-      </div></div>
-    <div class="card list">${[...recs].reverse().map((r) => { const d = describeCVA(r.cva, r.threshold); return `
-      <div class="item"><div style="flex:1;min-width:0"><span class="num" style="font-size:18px;color:var(--${d.kind})">${r.cva.toFixed(1)}°</span>
-        <div class="muted">${fmt(r.date)}${r.tag !== "none" ? " · " + TAG_LABEL[r.tag] : ""}${r.example ? ' <span class="chip">예시</span>' : ""}</div></div>
-        <span class="pill ${d.kind}">${d.label}</span><button class="link" type="button" data-del="${r.id}" aria-label="이 기록 삭제">삭제</button></div>`; }).join("")}</div>`;
+    ${dayPanel(S.rd)}
+    ${trendCard()}
+    ${compareCard()}`;
+  const mv = (n) => { S.rm = dayKey(new Date(y, m - 1 + n, 1)).slice(0, 7); recordsScreen(); };
+  $("calPrev").onclick = () => mv(-1); $("calNext").onclick = () => mv(1);
+  $("view").querySelectorAll("[data-day]").forEach((b) => b.onclick = () => { S.rd = b.dataset.day; recordsScreen(); setTimeout(() => $("dayPanel")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 0); });
+  $("view").querySelectorAll("[data-rt]").forEach((b) => b.onclick = () => { S.rt = b.dataset.rt; recordsScreen(); });
   $("view").querySelectorAll("[data-del]").forEach((b) => b.onclick = () => { S.records = S.records.filter((r) => r.id !== b.dataset.del); persist(); recordsScreen(); });
 }
-function chart(recs) {
-  const W = 340, H = 190, L = 34, R = 10, T = 12, B = 24;
-  const vals = recs.map((r) => r.cva).concat(S.threshold), lo = Math.floor(Math.min(...vals) - 2), hi = Math.ceil(Math.max(...vals) + 2);
-  const x = (i) => recs.length === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (recs.length - 1), y = (v) => T + (hi - v) * (H - T - B) / (hi - lo);
-  const step = Math.max(1, Math.round((hi - lo) / 4)); let g = "";
-  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${v}°</text>`;
-  g += `<line x1="${L}" x2="${W - R}" y1="${y(S.threshold)}" y2="${y(S.threshold)}" stroke="var(--warn)" stroke-width="1.2" stroke-dasharray="4 4"/>`;
-  const path = recs.map((r, i) => `${i ? "L" : "M"}${x(i)} ${y(r.cva)}`).join(" ");
-  if (recs.length > 1) g += `<path d="${path} L${x(recs.length - 1)} ${H - B} L${x(0)} ${H - B} Z" fill="var(--accent)" fill-opacity="0.1"/>`;
-  g += `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
-  recs.forEach((r, i) => g += `<circle cx="${x(i)}" cy="${y(r.cva)}" r="${i === recs.length - 1 ? 5 : 3.5}" fill="${r.tag === "before" ? "var(--tragus)" : r.tag === "after" ? "var(--c7)" : "var(--accent)"}" stroke="var(--surface)" stroke-width="1.5"/>`);
-  g += `<text x="${x(0)}" y="${H - 6}" font-size="10" fill="var(--muted)" text-anchor="${recs.length === 1 ? "middle" : "start"}">${fmtShort(recs[0].date)}</text>`;
-  if (recs.length > 1) g += `<text x="${x(recs.length - 1)}" y="${H - 6}" font-size="10" fill="var(--muted)" text-anchor="end">${fmtShort(recs[recs.length - 1].date)}</text>`;
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;font-family:var(--font)" role="img" aria-label="날짜별 CVA 변화 그래프">${g}</svg>`;
+
+/* 달력: 날짜 숫자만. 운동한 날 = 민트 동그라미, 측정한 날 = 아래 작은 점 */
+function calendarGrid(y, m) {
+  const first = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate(), today = dayKey(), cells = [];
+  for (let i = 0; i < first; i++) cells.push("<span></span>");
+  for (let d = 1; d <= n; d++) {
+    const key = dayKey(new Date(y, m, d)), ex = sessOn(key).length > 0, ms = recsOn(key).length > 0;
+    const label = `${m + 1}월 ${d}일${ex ? ", 운동함" : ""}${ms ? ", 측정함" : ""}`;
+    cells.push(`<button type="button" class="day${ex ? " ex" : ""}${key === today ? " today" : ""}${key === S.rd ? " sel" : ""}" data-day="${key}" aria-label="${label}" aria-pressed="${key === S.rd}">
+      <span class="n">${d}</span><i class="${ms ? "ms" : ""}"></i></button>`);
+  }
+  return `<div class="cal-grid head">${WEEK.map((w) => `<span>${w}</span>`).join("")}</div><div class="cal-grid">${cells.join("")}</div>`;
 }
+
+/* 고른 날의 기록 */
+function dayPanel(k) {
+  const d = parseDay(k), rs = recsOn(k), ss = sessOn(k);
+  const title = k === dayKey() ? "오늘" : `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK[d.getDay()]})`;
+  const items = rs.map((r) => ({ t: r.date, html: `<div class="item">
+      ${turtle(moodOf(r.cva, r.threshold), 40)}
+      <div style="flex:1;min-width:0"><b class="num" style="font-size:18px">${r.cva.toFixed(1)}°</b>
+        <div class="muted">${pad(new Date(r.date).getHours())}:${pad(new Date(r.date).getMinutes())} 측정${r.tag !== "none" ? " · " + TAG_LABEL[r.tag] : ""}</div></div>
+      <button class="link" type="button" data-del="${r.id}" aria-label="이 측정 삭제">삭제</button></div>` }))
+    .concat(ss.map((x) => ({ t: x.at, html: `<div class="item"><span class="ev-ic" aria-hidden="true">🧘</span>
+      <div style="flex:1;min-width:0"><b>목 운동 완료</b><div class="muted">${pad(new Date(x.at).getHours())}:${pad(new Date(x.at).getMinutes())}</div></div></div>` })))
+    .sort((a, b) => a.t.localeCompare(b.t));
+  const pair = beforeAfterPairs(k, k)[0];
+  return `<div class="card" id="dayPanel">
+    <div class="row" style="justify-content:space-between"><b style="font-size:16px">${title}</b>
+      <span class="muted">${ss.length ? `운동 ${ss.length}회` : "운동 안 함"} · ${rs.length ? `측정 ${rs.length}회` : "측정 없음"}</span></div>
+    ${pair ? `<div class="pair-note">운동 전 ${pair.b.cva.toFixed(1)}° → 운동 후 ${pair.a.cva.toFixed(1)}° <b>${sgn(pair.d)}°</b></div>` : ""}
+    ${items.length ? `<div class="list flat">${items.map((x) => x.html).join("")}</div>` : '<span class="muted">이 날은 기록이 없어요.</span>'}
+  </div>`;
+}
+
+/* CVA 변화: 최근 1주 / 1달, 하루 평균 선 하나 */
+function trendCard() {
+  const span = S.rt === "week" ? 7 : 30, end = dayKey(), start = addDays(end, -(span - 1)), days = [];
+  for (let x = start; x <= end; x = addDays(x, 1)) { const a = avgOf(recsOn(x)); if (a !== null) days.push({ x, a }); }
+  const seg = `<div class="seg small" role="group" aria-label="기간">${[["week", "최근 1주"], ["month", "최근 1달"]].map(([v, l]) => `<button type="button" data-rt="${v}" aria-pressed="${S.rt === v}">${l}</button>`).join("")}</div>`;
+  if (days.length < 2) return `<div class="card"><b style="font-size:16px">CVA 변화</b>${seg}<span class="muted">이 기간에 측정이 2번 이상 있으면 변화가 보여요.</span></div>`;
+  const W = 340, H = 150, L = 34, R = 14, T = 16, B = 22, idx = (k) => Math.round((parseDay(k) - parseDay(start)) / 864e5);
+  const vals = days.map((p) => p.a).concat(S.threshold), lo = Math.floor(Math.min(...vals) - 1.5), hi = Math.ceil(Math.max(...vals) + 1.5);
+  const X = (k) => L + idx(k) * (W - L - R) / (span - 1), Y = (v) => T + (hi - v) * (H - T - B) / (hi - lo);
+  let g = "";
+  [lo, Math.round((lo + hi) / 2), hi].forEach((v) => g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${v}°</text>`);
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(S.threshold)}" y2="${Y(S.threshold)}" stroke="var(--warn)" stroke-width="1.2" stroke-dasharray="4 4"/><text x="${W - R}" y="${Y(S.threshold) - 4}" text-anchor="end" font-size="10" fill="var(--muted)">기준 ${S.threshold}°</text>`;
+  g += `<path d="${days.map((p, i) => `${i ? "L" : "M"}${X(p.x)} ${Y(p.a)}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  days.forEach((p) => g += `<g><title>${parseDay(p.x).getMonth() + 1}/${parseDay(p.x).getDate()} ${p.a.toFixed(1)}°</title><circle cx="${X(p.x)}" cy="${Y(p.a)}" r="12" fill="transparent"/><circle cx="${X(p.x)}" cy="${Y(p.a)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/></g>`);
+  const lastP = days[days.length - 1];
+  g += `<text x="${X(lastP.x)}" y="${Y(lastP.a) - 10}" text-anchor="end" font-size="11" font-weight="700" fill="var(--ink)">${lastP.a.toFixed(1)}°</text>`;
+  [start, end].forEach((k, i) => g += `<text x="${X(k)}" y="${H - 6}" text-anchor="${i ? "end" : "start"}" font-size="10" fill="var(--muted)">${parseDay(k).getMonth() + 1}/${parseDay(k).getDate()}</text>`);
+  const ch = lastP.a - days[0].a;
+  return `<div class="card">
+    <div class="row" style="justify-content:space-between"><b style="font-size:16px">CVA 변화</b>${seg}</div>
+    <div class="hero-cmp"><b class="num" style="font-size:28px">${sgn(ch)}°</b><span class="muted">${ch >= 0 ? "목이 조금씩 펴지고 있어요" : "조금 나빠졌어요. 운동을 이어 가 봐요"}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="CVA 변화 그래프">${g}</svg>
+  </div>`;
+}
+
+/* 운동 전·후 비교: 최근 5번, 한 줄 = 운동 전 점 → 운동 후 점 */
+function compareCard() {
+  const pairs = beforeAfterPairs("0000-00-00", "9999-99-99").reverse().slice(0, 5);
+  if (!pairs.length) return `<div class="card"><b style="font-size:16px">운동 효과</b>
+    <span class="muted">운동 탭에서 <b>운동 전 측정 → 운동 → 운동 후 측정</b>을 하면, 운동하고 목 각도가 얼마나 달라졌는지 여기서 보여요.</span></div>`;
+  const all = pairs.flatMap((p) => [p.b.cva, p.a.cva]), lo = Math.floor(Math.min(...all) - 1), hi = Math.ceil(Math.max(...all) + 1);
+  const W = 340, L = 44, R = 50, rowH = 32, T = 8, H = T + pairs.length * rowH;
+  const X = (v) => L + (v - lo) * (W - L - R) / (hi - lo);
+  let g = "";
+  pairs.forEach((p, i) => {
+    const yy = T + i * rowH + rowH / 2, dd = parseDay(p.day);
+    g += `<g><title>${dd.getMonth() + 1}/${dd.getDate()} 운동 전 ${p.b.cva.toFixed(1)}° → 운동 후 ${p.a.cva.toFixed(1)}°</title>
+      <rect x="0" y="${yy - rowH / 2}" width="${W}" height="${rowH}" fill="transparent"/>
+      <text x="0" y="${yy + 4}" font-size="11" fill="var(--muted)">${dd.getMonth() + 1}/${dd.getDate()}</text>
+      <line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/>
+      <line x1="${X(p.b.cva)}" x2="${X(p.a.cva)}" y1="${yy}" y2="${yy}" stroke="var(--muted)" stroke-width="2"/>
+      <circle cx="${X(p.b.cva)}" cy="${yy}" r="5.5" fill="${C_BEFORE}" stroke="var(--surface)" stroke-width="2"/>
+      <circle cx="${X(p.a.cva)}" cy="${yy}" r="5.5" fill="${C_AFTER}" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${W}" y="${yy + 4}" text-anchor="end" font-size="12" font-weight="700" fill="var(--ink)">${sgn(p.d)}°</text></g>`;
+  });
+  const avg = pairs.reduce((s, p) => s + p.d, 0) / pairs.length;
+  return `<div class="card">
+    <b style="font-size:16px">운동 효과</b>
+    <div class="hero-cmp"><b class="num" style="font-size:28px">${sgn(avg)}°</b><span class="muted">운동하고 나면 목 각도가 평균 이만큼 달라졌어요</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="운동 전후 CVA 비교">${g}</svg>
+    <span class="muted"><i class="lg-dot" style="background:${C_BEFORE}"></i> 운동 전 &nbsp;→&nbsp; <i class="lg-dot" style="background:${C_AFTER}"></i> 운동 후 · 최근 ${pairs.length}번</span>
+  </div>`;
+}
+
+/* ===== 3D 상반신 아바타 (예시) =====
+   머리·목·어깨만 있는 흉상. 화면마다 따로 만들어 씀 (createBust).
+   - pose: { fwd 0~1 머리가 앞으로 나온 정도, tilt -1~1 옆으로 굽힘, tuck 0~1 턱 당기기, open 0~1 가슴·어깨 펴기 }
+   - 목 선(귀~목 뒤)을 색으로 표시: 빨강 = 거북목, 초록 = 바른 자세
+   - 운동 가이드가 정해지면 실제 모션 데이터로 바꿔 끼우는 자리 */
+/* ===== 3D 사람 아바타 (예시) =====
+   실제 사람 모양 3D 모델(glTF, 뼈대 있음)을 불러와 목·머리·어깨 뼈를 돌려서 동작을 보여 줌.
+   - 모델: Ready Player Me 예시 아바타 (three.js 예제 모델). 나중에 원하는 모델(.glb)로 바꿔 끼우면 됨
+     (Hips·Spine2·Neck·Head·LeftArm 같은 표준 뼈 이름이면 그대로 동작)
+   - pose: { fwd 0~1 거북목, tilt -1~1 옆으로 굽힘(− 왼쪽), tuck 0~1 턱 당기기, open 0~1 가슴 펴기, wing 0~1 W 팔 }
+   - 목 선(귀~목 뒤) 색: 빨강 = 거북목, 노랑 = 주의, 초록 = 바른 자세 */
+// 모델 파일은 한 번만 받아서 여러 화면이 같이 씀
+let HUMAN_BUF = null;
+function humanModel() { return HUMAN_BUF || (HUMAN_BUF = fetch("/models/avatar.glb").then((r) => r.arrayBuffer())); }
+function createBust({ yaw = 1.45, line = true, drag = true, dist = 1.55 } = {}) {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 20);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x2a3f66, 1.05));
+  const key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(1.5, 2.5, 2.5); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x9fe9da, 0.6); rim.position.set(-2, 1.5, -2); scene.add(rim);
+  const root = new THREE.Group(); scene.add(root);
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0x4be3b0, depthTest: false, transparent: true });
+  const neckLine = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 1, 8), lineMat);
+  const dotA = new THREE.Mesh(new THREE.SphereGeometry(0.009, 12, 10), lineMat), dotB = dotA.clone();
+  [neckLine, dotA, dotB].forEach((m) => { m.visible = false; m.renderOrder = 10; scene.add(m); });
+  let B = null, rest = null, earMark = null, c7Mark = null, ready = false;
+  let renderer = null, host = null, raf = 0, curYaw = yaw, tgtYaw = yaw, dragging = null, poseFn = () => ({});
+
+  humanModel().then((buf) => new THREE.GLTFLoader().parse(buf, "", (g) => {
+    const m = g.scene; root.add(m);
+    m.traverse((o) => {
+      if (!o.isMesh) return;
+      o.frustumCulled = false;
+      if (o.name === "Wolf3D_Beard") o.visible = false; // 수염 빼서 더 젊게
+      // 옷은 모델 원래 색 그대로
+    });
+    B = {}; m.traverse((o) => { if (o.isBone) B[o.name] = o; });
+    rest = Object.fromEntries(Object.entries(B).map(([n, b]) => [n, b.quaternion.clone()]));
+    m.updateMatrixWorld(true);
+    const hp = new THREE.Vector3(); B.Head.getWorldPosition(hp);
+    const np = new THREE.Vector3(); B.Neck.getWorldPosition(np);
+    camera.position.set(0, hp.y, dist); camera.lookAt(0, hp.y - 0.08, 0);
+    // 귀(이주)와 목 뒤(C7) 표시점: 카메라 쪽(모델의 오른쪽 = −x) 옆면
+    earMark = new THREE.Object3D(); earMark.position.set(-0.078, hp.y + 0.035, hp.z - 0.005); m.add(earMark); B.Head.attach(earMark);
+    c7Mark = new THREE.Object3D(); c7Mark.position.set(-0.035, np.y - 0.01, np.z - 0.07); m.add(c7Mark); B.Neck.attach(c7Mark);
+    ready = true;
+  }, () => {})).catch(() => {});
+
+  const axis = (x, y, z) => new THREE.Vector3(x, y, z).applyQuaternion(root.quaternion);
+  const tq = new THREE.Quaternion(), pq = new THREE.Quaternion();
+  function rot(name, ax, ang) {
+    const b = B[name]; if (!b || !ang) return;
+    b.parent.updateMatrixWorld(true); b.parent.getWorldQuaternion(pq);
+    tq.setFromAxisAngle(ax, ang);
+    b.quaternion.premultiply(pq.clone().invert().multiply(tq).multiply(pq));
+    b.updateMatrixWorld(true);
+  }
+  function apply(p) {
+    const fwd = p.fwd || 0, tilt = p.tilt || 0, tuck = p.tuck || 0, open = p.open || 0, wing = p.wing || 0;
+    for (const n in rest) B[n].quaternion.copy(rest[n]);
+    root.updateMatrixWorld(true);
+    const X = axis(1, 0, 0), Y = axis(0, 1, 0), Z = axis(0, 0, 1);
+    // 팔 내리기(기본) → 몸통 → 어깨 → 목 → 머리 순서로
+    rot("LeftArm", Z, -0.45 + 1.05 * wing); rot("RightArm", Z, 0.45 - 1.05 * wing);
+    rot("LeftForeArm", Z, 1.5 * wing); rot("RightForeArm", Z, -1.5 * wing);
+    rot("LeftArm", X, 0.5 * open * (1 - wing)); rot("RightArm", X, 0.5 * open * (1 - wing));
+    rot("Spine2", X, 0.18 * fwd - 0.1 * open);
+    rot("LeftShoulder", Y, 0.22 * Math.max(open, wing)); rot("RightShoulder", Y, -0.22 * Math.max(open, wing));
+    rot("Neck", X, 0.72 * fwd - 0.12 * tuck); rot("Neck", Z, -0.42 * tilt); // tilt − = 아바타 자신의 왼쪽
+    rot("Head", X, -0.58 * fwd + 0.16 * tuck); rot("Head", Z, -0.14 * tilt);
+    lineMat.color.setHex(fwd > 0.55 ? 0xff7a6b : fwd > 0.2 ? 0xf2c230 : 0x4be3b0);
+  }
+  function placeLine() {
+    scene.updateMatrixWorld(true);
+    const a = new THREE.Vector3().setFromMatrixPosition(earMark.matrixWorld), b = new THREE.Vector3().setFromMatrixPosition(c7Mark.matrixWorld);
+    dotA.position.copy(a); dotB.position.copy(b);
+    neckLine.position.copy(a).add(b).multiplyScalar(0.5); neckLine.scale.y = a.distanceTo(b);
+    neckLine.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    [neckLine, dotA, dotB].forEach((m) => { m.visible = true; });
+  }
+  function frame(now) {
+    raf = requestAnimationFrame(frame);
+    if (!host || !host.isConnected) { cancelAnimationFrame(raf); raf = 0; renderer.dispose(); renderer.forceContextLoss(); renderer = null; return; }
+    const w = host.clientWidth, h = host.clientHeight;
+    if (renderer.domElement.width !== Math.round(w * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+    if (!dragging) curYaw += (tgtYaw - curYaw) * 0.08;
+    root.rotation.y = curYaw;
+    if (ready) { apply(poseFn(now / 1000)); if (line) placeLine(); }
+    renderer.render(scene, camera);
+  }
+  return {
+    mount(el) {
+      try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch { return false; }
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      const cv = renderer.domElement; cv.style.cssText = `width:100%;height:100%;display:block;touch-action:pan-y;${drag ? "cursor:grab" : ""}`;
+      if (drag) {
+        cv.addEventListener("pointerdown", (e) => { dragging = { x: e.clientX, yaw: curYaw }; cv.setPointerCapture(e.pointerId); });
+        cv.addEventListener("pointermove", (e) => { if (dragging) { curYaw = dragging.yaw + (e.clientX - dragging.x) * 0.012; tgtYaw = curYaw; } });
+        const up = () => { dragging = null; }; cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+      }
+      host = el; el.prepend(cv);
+      raf = requestAnimationFrame(frame);
+      return true;
+    },
+    animate(fn) { poseFn = fn; },
+    face(y) { tgtYaw = y; },
+  };
+}
+
+const webglOK = () => { try { const c = document.createElement("canvas"); return !!(window.THREE && (c.getContext("webgl") || c.getContext("experimental-webgl"))); } catch { return false; } };
+const ease = (x) => x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;
+/** 동작 한 번 = 1초 굽히기 → 3초 버티기 → 1초 돌아오기 (5초) */
+const HOLD_CYCLE = 5;
+function holdWave(t) {
+  const p = t % HOLD_CYCLE;
+  return p < 1 ? ease(p) : p < 4 ? 1 : ease(1 - (p - 4));
+}
+/** 동작별 자세 (k = 0~1) */
+const MOVES = {
+  chin: { pose: (k) => ({ fwd: 0.35 * (1 - k), tuck: k }), yaw: 1.5, mission: "턱을 뒤로 3초 동안 당기기", arrows: "back" },
+  tiltL: { pose: (k) => ({ tilt: -k }), yaw: 0.05, mission: "목을 왼쪽으로 3초 동안 굽히기", arrows: "left" },
+  tiltR: { pose: (k) => ({ tilt: k }), yaw: -0.05, mission: "목을 오른쪽으로 3초 동안 굽히기", arrows: "right" },
+  chest: { pose: (k) => ({ open: k, tuck: 0.3 * k }), yaw: 1.0, mission: "가슴을 펴고 3초 동안 버티기", arrows: "open" },
+  wing: { pose: (k) => ({ wing: k, open: 0.4 * k }), yaw: 2.75, mission: "날개뼈를 모으고 3초 동안 버티기", arrows: "open" },
+};
+/** 화살표 겹쳐 그리기 (참고 시안처럼 곡선 화살표) */
+function moveArrows(kind) {
+  const head = `<marker id="ah" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#EAF2FF"/></marker>`;
+  const p = {
+    // 아바타가 화면을 보고 있어서, 아바타의 왼쪽 = 화면의 오른쪽
+    left: `<path d="M202 70 Q236 60 246 96" /><path d="M118 70 Q84 60 74 96" opacity=".35"/>`,
+    right: `<path d="M118 70 Q84 60 74 96" /><path d="M202 70 Q236 60 246 96" opacity=".35"/>`,
+    back: `<path d="M226 22 H150" />`,
+    open: `<path d="M120 150 Q96 140 84 120" /><path d="M200 150 Q224 140 236 120" />`,
+  }[kind] || "";
+  return `<svg class="move-arrows" viewBox="0 0 320 220" aria-hidden="true"><defs>${head}</defs><g fill="none" stroke="#EAF2FF" stroke-width="6" stroke-linecap="round" marker-end="url(#ah)" opacity=".9">${p}</g></svg>`;
+}
+/** CVA → 머리가 앞으로 나온 정도 */
+const fwdOf = (cva, th) => Math.max(0, Math.min(1, (th + 2 - cva) / 14));
 
 /* ===== 운동 (ExerciseScreen): 알림 간격 타이머 + 운동 순서 안내 ===== */
 // 운동 목록은 물리치료 지도 내용에 맞게 바꿔 쓰는 자리예요 (이름, 방법, 시간)
 const ROUTINE = [
-  { name: "턱 당기기", how: "정면을 보고 턱을 수평으로 뒤로 당겨 5초 버텨요. 천천히 반복해요.", sec: 40, art: "🙂" },
-  { name: "목 옆 늘리기 · 왼쪽", how: "오른손을 엉덩이 아래에 두고, 머리를 왼쪽으로 기울여 목 옆을 늘려요.", sec: 20, art: "↖️" },
-  { name: "목 옆 늘리기 · 오른쪽", how: "왼손을 엉덩이 아래에 두고, 머리를 오른쪽으로 기울여 목 옆을 늘려요.", sec: 20, art: "↗️" },
-  { name: "가슴 펴기", how: "양팔을 뒤로 모아 깍지 끼고, 가슴을 앞으로 내밀며 어깨를 펴요.", sec: 30, art: "🙆" },
-  { name: "날개뼈 모으기", how: "팔을 W 모양으로 들고, 날개뼈를 뒤로 모아 3초 버텼다가 풀어요.", sec: 30, art: "💪" },
+  { key: "chin", name: "턱 당기기", how: "정면을 보고 턱을 수평으로 뒤로 당겨 5초 버텨요. 천천히 반복해요.", sec: 40, art: "🙂" },
+  { key: "tiltL", name: "목 옆 늘리기 · 왼쪽", how: "오른손을 엉덩이 아래에 두고, 머리를 왼쪽으로 기울여 목 옆을 늘려요.", sec: 20, art: "↖️" },
+  { key: "tiltR", name: "목 옆 늘리기 · 오른쪽", how: "왼손을 엉덩이 아래에 두고, 머리를 오른쪽으로 기울여 목 옆을 늘려요.", sec: 20, art: "↗️" },
+  { key: "chest", name: "가슴 펴기", how: "양팔을 뒤로 모아 깍지 끼고, 가슴을 앞으로 내밀며 어깨를 펴요.", sec: 30, art: "🙆" },
+  { key: "wing", name: "날개뼈 모으기", how: "팔을 W 모양으로 들고, 날개뼈를 뒤로 모아 3초 버텼다가 풀어요.", sec: 30, art: "💪" },
 ];
 const ROUTINE_SEC = ROUTINE.reduce((s, x) => s + x.sec, 0);
 const INTERVALS = [30, 50, 60, 90];
@@ -1185,18 +1545,32 @@ function exerciseScreen() {
       <div class="row" style="justify-content:space-between"><button class="back dark" type="button" id="exStop">‹ 그만하기</button>
         <span class="muted">${EX.step + 1} / ${ROUTINE.length}</span></div>
       <div class="steps">${ROUTINE.map((_, i) => `<span class="${i < EX.step ? "done" : i === EX.step ? "now" : ""}"></span>`).join("")}</div>
-      <div class="card" style="align-items:center;text-align:center;padding:22px 16px">
-        <span style="font-size:40px" aria-hidden="true">${st.art}</span>
-        <b style="font-size:22px;letter-spacing:-0.3px">${st.name}</b>
-        <span class="muted" style="font-size:14px;line-height:1.6;max-width:30ch">${st.how}</span>
-        <div id="ring">${ringSvg(EX.left / st.sec, Math.ceil(EX.left), "초 남음")}</div>
-        ${EX.step + 1 < ROUTINE.length ? `<span class="muted">다음: ${ROUTINE[EX.step + 1].name}</span>` : `<span class="muted">마지막 동작이에요</span>`}
+      <div class="card game">
+        <div class="mission"><span class="label">미션 ${EX.step + 1} · ${st.name}</span>
+          <b>${MOVES[st.key].mission.replace("3초", '<em>3초</em>')}</b></div>
+        <div class="stage3d" id="avatar3d">${moveArrows(MOVES[st.key].arrows)}
+          <span class="fallback" aria-hidden="true">${st.art}</span>
+          <b class="combo" id="mCombo" hidden></b>
+          <button class="round-btn" type="button" id="exPause2" aria-label="${EX.paused ? "계속하기" : "일시정지"}">${EX.paused ? "▶" : "❚❚"}</button>
+        </div>
+        <div class="mission-row"><span>미션 달성도</span><span class="num" id="mTime">00:00초</span></div>
+        <div class="bar thick"><i id="mBar" data-step="${EX.step}" style="width:0%"></i></div>
+        <div class="mission-row"><span>점수</span><b class="num" id="mScore">0 XP</b></div>
       </div>
+      <div class="card guide-card"><b style="font-size:15px">가이드</b><span class="muted" style="font-size:14px;line-height:1.6">${st.how}</span>
+        <span class="muted" style="font-size:12px">${EX.step + 1 < ROUTINE.length ? `다음 미션: ${ROUTINE[EX.step + 1].name}` : "마지막 미션이에요"} · 3D 예시 동작 · 끌어서 돌려 보기</span></div>
       <div class="ex-ctrl">
         <button class="btn" type="button" id="exPrev" ${EX.step === 0 ? "disabled" : ""}>이전</button>
         <button class="btn primary big" type="button" id="exPause">${EX.paused ? "계속하기" : "일시정지"}</button>
         <button class="btn" type="button" id="exNext">다음</button>
       </div>`;
+    if (webglOK()) {
+      const b = createBust({ yaw: MOVES[st.key].yaw, line: st.key === "chin" });
+      b.animate(() => MOVES[st.key].pose(EX.paused ? 0 : holdWave(st.sec - EX.left)));
+      if (b.mount($("avatar3d"))) $("avatar3d").querySelector(".fallback")?.remove();
+    }
+    $("exPause2").onclick = () => { EX.paused = !EX.paused; exerciseScreen(); };
+    updateExercise();
     $("exStop").onclick = () => { EX.mode = "idle"; exerciseScreen(); };
     $("exPrev").onclick = () => { goStep(EX.step - 1); exerciseScreen(); };
     $("exNext").onclick = () => { goStep(EX.step + 1); exerciseScreen(); };
@@ -1231,6 +1605,12 @@ function exerciseScreen() {
       <span class="muted">앱에서는 화면을 꺼도 폰 알림으로 알려 줘요. 시제품에서는 이 페이지를 열어 둔 동안만 알려요.</span>
     </div>
 
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><b style="font-size:16px">운동 가이드</b><span class="chip">3D 예시</span></div>
+      <div class="stage3d small" id="avatarPreview">${moveArrows(MOVES[EX.preview || ROUTINE[0].key].arrows)}<span class="fallback" aria-hidden="true">🧘</span></div>
+      <div class="chips" role="group" aria-label="동작 고르기">${ROUTINE.map((x) => `<button type="button" class="chipsel" data-pv="${x.key}" aria-pressed="${(EX.preview || ROUTINE[0].key) === x.key}">${x.name.replace(" · ", " ")}</button>`).join("")}</div>
+      <span class="muted">물리치료 지도에 맞춘 운동 가이드가 들어올 자리예요. 지금은 예시 동작을 보여 줘요.</span>
+    </div>
     <div class="bento small">
       <div class="tile static"><span class="h3">오늘</span><span class="desc">목표 ${S.goal.daily}회</span>
         <span class="big num">${done}<small> / ${S.goal.daily}회</small></span>
@@ -1245,6 +1625,12 @@ function exerciseScreen() {
     <button class="btn" type="button" id="exBefore">운동 전 측정 먼저 하기</button>
     <p class="notice">통증이 있으면 바로 멈추세요. 운동 목록은 전문가 지도에 맞게 바꿀 수 있어요.</p>`;
   $("toAlarmSet").onclick = () => { S.myPanel = "alarm"; go("my"); };
+  if (webglOK()) {
+    const mk = EX.preview || ROUTINE[0].key, b = createBust({ yaw: MOVES[mk].yaw, line: mk === "chin" });
+    b.animate((t) => MOVES[mk].pose(holdWave(t)));
+    if (b.mount($("avatarPreview"))) $("avatarPreview").querySelector(".fallback")?.remove();
+  }
+  v.querySelectorAll("[data-pv]").forEach((b) => b.onclick = () => { EX.preview = b.dataset.pv; exerciseScreen(); });
   $("remToggle").onclick = () => {
     S.reminder.on = !S.reminder.on; S.reminder.nextAt = S.reminder.on ? Date.now() + S.reminder.min * 60000 : null;
     alertShown = false; persist(); exerciseScreen();
@@ -1257,11 +1643,18 @@ function exerciseScreen() {
 function updateExercise() {
   if (EX.mode !== updateExercise.mode) { exerciseScreen(); return; } // 운동이 끝나면 완료 화면으로
   if (EX.mode === "run") {
-    const st = ROUTINE[EX.step], R = 92, C = 2 * Math.PI * R;
-    const arc = document.getElementById("ringArc"), t = document.getElementById("ringText");
-    if (arc) arc.setAttribute("stroke-dashoffset", String(C * (1 - Math.max(0, EX.left) / st.sec)));
-    if (t) t.textContent = String(Math.max(0, Math.ceil(EX.left)));
-    if (t && t.dataset.step !== String(EX.step)) { if (t.dataset.step !== undefined) exerciseScreen(); else t.dataset.step = String(EX.step); }
+    const st = ROUTINE[EX.step], bar = document.getElementById("mBar");
+    if (!bar) return;
+    if (bar.dataset.step !== String(EX.step)) { exerciseScreen(); return; } // 다음 미션으로
+    const el = st.sec - Math.max(0, EX.left), holds = Math.floor(el / HOLD_CYCLE);
+    // 점수: 버티기 한 번 100 XP, 연속(콤보) 보너스 50 XP씩
+    const xp = (n) => n * 100 + Math.max(0, n - 1) * 50;
+    const score = ROUTINE.slice(0, EX.step).reduce((a, x) => a + xp(Math.floor(x.sec / HOLD_CYCLE)), 0) + xp(holds);
+    bar.style.width = `${Math.min(100, el / st.sec * 100)}%`;
+    document.getElementById("mTime").textContent = `${mmss(Math.max(0, EX.left))}초`;
+    document.getElementById("mScore").textContent = `${score.toLocaleString()} XP`;
+    const cb = document.getElementById("mCombo"), showCombo = holds >= 2 && (el % HOLD_CYCLE) < 1.6;
+    cb.hidden = !showCombo; if (showCombo) cb.textContent = `콤보 ×${holds}!`;
     return;
   }
   const el = document.getElementById("nextLeft");
@@ -1292,7 +1685,12 @@ function myScreen() {
       <span class="muted">몇 분마다 운동 알림을 받을지 골라요. 운동 탭 타이머에 바로 적용돼요.</span>
       <div class="chips" role="group" aria-label="알림 간격">${INTERVALS.map((m) => `<button type="button" class="chipsel" data-min="${m}" aria-pressed="${S.reminder.min === m}">${m}분</button>`).join("")}</div>
       <div class="row" style="justify-content:space-between"><span>알림</span>
-        <button class="btn" type="button" id="alarmToggle" style="min-height:38px">${S.reminder.on ? "켜짐 · 끄기" : "꺼짐 · 켜기"}</button></div></div>
+        <button class="btn" type="button" id="alarmToggle" style="min-height:38px">${S.reminder.on ? "켜짐 · 끄기" : "꺼짐 · 켜기"}</button></div>
+      <hr class="sep">
+      <b style="font-size:15px">거북목 5분 지속 알림</b>
+      <span class="muted">자세 판별 중 거북목이 5분 넘게 이어지면 알려 줘요. 받을 방법을 골라요.</span>
+      <div class="ways">${[["vibrate", "📳", "진동"], ["push", "🔔", "푸시 알림"], ["sound", "🔊", "소리"]].map(([k, e, l]) => `<button type="button" class="way" data-way="${k}" aria-pressed="${S.alertWays[k]}"><span aria-hidden="true">${e}</span>${l}</button>`).join("")}</div>
+      <button class="btn" type="button" id="alertTest" style="min-height:38px">알림 미리 받아 보기</button></div>
     <div class="card" id="dataCard" ${S.myPanel === "data" ? "" : "hidden"}><b style="font-size:16px">데이터</b>
       <span class="muted">측정 기록 ${S.records.length}개, 운동 기록 ${S.sessions.length}개가 이 폰에 저장되어 있어요.</span>
       ${S.confirmClear ? `<div class="row"><button class="btn" type="button" id="cancelClear">취소</button><button class="btn danger" type="button" id="doClear">모두 지우기</button></div>`
@@ -1347,6 +1745,14 @@ function myScreen() {
     S.reminder.min = +b.dataset.min; if (S.reminder.on) S.reminder.nextAt = Date.now() + S.reminder.min * 60000;
     alertShown = false; persist(); myScreen();
   });
+  document.querySelectorAll("[data-way]").forEach((b) => b.onclick = () => { S.alertWays[b.dataset.way] = !S.alertWays[b.dataset.way]; persist(); myScreen(); });
+  $("alertTest").onclick = () => {
+    const w = S.alertWays;
+    if (w.vibrate && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if (w.sound) beep();
+    if (w.push && "Notification" in window) { if (Notification.permission === "granted") new Notification("거북목 자세가 5분 넘게 이어지고 있어요", { body: "턱을 당기고 등을 펴 보세요." }); else Notification.requestPermission(); }
+    toast(["진동", "푸시", "소리"].filter((_, i) => [w.vibrate, w.push, w.sound][i]).join(" · ") + (w.vibrate || w.push || w.sound ? " 알림을 보냈어요" : "알림 방법을 하나 이상 골라 주세요"));
+  };
   $("alarmToggle").onclick = () => {
     S.reminder.on = !S.reminder.on; S.reminder.nextAt = S.reminder.on ? Date.now() + S.reminder.min * 60000 : null;
     alertShown = false; persist(); myScreen();
