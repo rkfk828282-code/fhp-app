@@ -26,6 +26,9 @@ button, input, select, textarea, svg text { font-family: var(--font); }
 :root { color-scheme: dark; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+/* 탭을 옮겨도 화면이 옆으로 움직이지 않게: 내용이 짧아 스크롤바가 사라지는 화면에서도 그 자리를 비워 둠 (윈도우 크롬) */
+html { scrollbar-gutter: stable; }
+@supports not (scrollbar-gutter: stable) { html { overflow-y: scroll; } }
 body { background: var(--outer); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; }
 .phone {
   width: 100%; margin: 0 auto; min-height: 100%; background: var(--bg); position: relative;
