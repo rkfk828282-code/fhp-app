@@ -416,6 +416,24 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot .mon-alert b { font-size: 15px; }
 #dualRoot .mon-alert button { position: absolute; top: 6px; right: 8px; appearance: none; border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; padding: 4px; } /* 위쪽 막대에 가리지 않게 */
 #dualRoot { display: flex; flex-direction: column; gap: 16px; }
+/* 노트북(넓고 충분히 높은 화면): 실시간 자세 측정을 스크롤 없이 한 화면에
+   - 화면 높이에 맞춰 카메라 크기가 줄었다 늘었다 함
+   - 판별 카드는 높이를 정해 두고, 넘치는 내용(숫자·학습·근거)은 카드 안에서만 스크롤 */
+@media (min-width: 900px) and (min-height: 560px) {
+  #dualRoot { max-width: 1500px; height: calc(100dvh - 60px); min-height: 0; flex: none; padding: 14px 24px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  #dualRoot .page-head { min-height: 0; }
+  #dualRoot > .pair:not(.shots) { min-height: 0; align-items: stretch; }
+  #dualRoot section.cam { display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto; gap: 8px; min-height: 0; }
+  #dualRoot section.cam .screen { aspect-ratio: auto; height: auto; min-height: 0; }
+  #dualRoot .ctrl .btn.big { min-height: 38px; font-size: 15px; }
+  #dualRoot section.cam .card.monitor { max-height: 36vh; overflow: auto; padding: 12px 14px; gap: 8px; overscroll-behavior: contain; }
+  #dualRoot .mon-result { font-size: 18px; }
+  #dualRoot > .notice { margin: 0; font-size: 12px; }
+  #dualRoot .placeholder { padding: 12px; gap: 6px; }
+  #dualRoot .code { font-size: 36px; }
+  #dualRoot .qr svg { width: 104px; height: 104px; }
+}
+
 #dualRoot[hidden] { display: none !important; }
 a.btn { text-decoration: none; }
 </style>
