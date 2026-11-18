@@ -413,6 +413,24 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot .mon-alert b { font-size: 15px; }
 #dualRoot .mon-alert button { position: absolute; top: 6px; right: 8px; appearance: none; border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; padding: 4px; } /* 위쪽 막대에 가리지 않게 */
 #dualRoot { display: flex; flex-direction: column; gap: 16px; }
+/* 휴대폰 카메라 숨김: 웹캠 한 칸을 크게 */
+#dualRoot[data-phone="off"] section.cam[aria-labelledby="sideTitle"], #dualRoot[data-phone="off"] #status { display: none !important; }
+#dualRoot[data-phone="off"] > .pair:not(.shots) { grid-template-columns: minmax(0, 1fr); max-width: 1100px; width: 100%; margin: 0 auto; }
+/* 넓은 노트북: 웹캠 영상은 왼쪽에 크게, 자세 모니터링 카드는 오른쪽 세로로 (게이지 위·데이터 아래) */
+@media (min-width: 900px) and (min-height: 560px) {
+  #dualRoot[data-phone="off"] > .pair:not(.shots) { max-width: 1400px; }
+  #dualRoot[data-phone="off"] section.cam[aria-labelledby="frontTitle"] { grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 16px; }
+  #dualRoot[data-phone="off"] section.cam[aria-labelledby="frontTitle"] > .cam-head { grid-column: 1 / -1; }
+  #dualRoot[data-phone="off"] section.cam[aria-labelledby="frontTitle"] > .screen { grid-column: 1; grid-row: 2; }
+  #dualRoot[data-phone="off"] section.cam[aria-labelledby="frontTitle"] > .ctrl { grid-column: 1; grid-row: 3; }
+  #dualRoot[data-phone="off"] section.cam[aria-labelledby="frontTitle"] > .card.monitor { grid-column: 2; grid-row: 2 / 4; height: auto; max-height: none; min-height: 0;
+    grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  #dualRoot[data-phone="off"] section.cam[aria-labelledby="frontTitle"] > .card.monitor .mon-right { grid-row: 1; border-left: 0; border-bottom: 1px solid var(--line); padding: 12px; }
+  #dualRoot[data-phone="off"] section.cam[aria-labelledby="frontTitle"] > .card.monitor .mon-left { grid-row: 2; }
+  #dualRoot[data-phone="off"] .live-gauge { flex-direction: row; justify-content: center; gap: 12px; }
+  #dualRoot[data-phone="off"] .live-gauge .lg-dial { width: auto; flex: 1; max-width: 200px; }
+}
+
 /* 실시간 게이지 + 단계별 거북이 */
 #dualRoot .card.monitor.split { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 0; padding: 0; overflow: hidden; }
 #dualRoot .mon-left { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; min-width: 0; overflow: auto; overscroll-behavior: contain; }
@@ -469,7 +487,8 @@ a.btn { text-decoration: none; }
   <!-- ===== 실시간 자세 측정 (측정 바로가기) ===== -->
   <!-- 사진 찍기 잠시 숨김 (다시 쓰려면 "on"으로)
        data-front-shot: 웹캠 사진 / data-side-shot: 휴대폰 사진 + 찍은 사진 칸 + 측정 완료 -->
-  <section class="view" id="dualRoot" data-front-shot="off" data-side-shot="off" hidden aria-label="실시간 자세 측정">
+  <!-- data-phone="off": 휴대폰 카메라(옆모습) 연결은 잠시 숨김 — 1차 프로토타입은 노트북 웹캠이 메인 ("on"이면 다시 보임) -->
+  <section class="view" id="dualRoot" data-front-shot="off" data-side-shot="off" data-phone="off" hidden aria-label="실시간 자세 측정">
     <div class="page-head"><span class="logo soft" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
       <h1>실시간 자세 측정</h1><span class="side"><span class="status" id="status"><i></i><span id="statusText">연결 준비</span></span>
       <button class="btn" type="button" id="dualBack" style="min-height:36px">측정으로</button></span></div>
@@ -978,7 +997,7 @@ function measureHome() {
         <b style="font-size:16px">아직 측정 결과가 없어요</b><span class="muted">아래 버튼으로 첫 측정을 해 보세요. 결과가 여기에 게이지로 나와요.</span></div>`}
     ${isWide() // 노트북(넓은 화면)에서는 실시간 자세 측정만
       ? `<button class="btn primary big" type="button" data-go="dual">💻 &nbsp;실시간 자세 측정</button>
-        <span class="muted" style="text-align:center">휴대폰 카메라(옆모습)와 웹캠(정면)으로 자세를 실시간으로 확인해요 · 기준값 ${S.threshold}° (MY에서 변경)</span>`
+        <span class="muted" style="text-align:center">노트북 웹캠으로 자세를 실시간으로 확인해요 · 기준값 ${S.threshold}° (MY에서 변경)</span>`
       : `<button class="btn primary big" type="button" data-go="photo">📸 &nbsp;폰으로 측정하기</button>
         <button class="btn big" type="button" data-go="live">💻 &nbsp;노트북 보면서 촬영</button>
         <span class="muted" style="text-align:center">혼자 잴 때는 폰을 세워 두고 노트북으로 보면서 찍어요 · 기준값 ${S.threshold}° (MY에서 변경)</span>`}
@@ -2136,7 +2155,7 @@ function renderMeasure() {
 let started = false;
 showSideWaiting();
 // 두 카메라 화면을 처음 열 때만 서버에 연결
-window.initDual = () => { if (started) return; started = true; loadIce(); connect(); };
+window.initDual = () => { if (started) return; started = true; if ($("dualRoot").dataset.phone === "off") return; loadIce(); connect(); }; // 휴대폰 숨김이면 서버 연결도 안 함
 
 /* 측정 완료 → 기록 저장 + 요약 화면 */
 let dualTag = "none";

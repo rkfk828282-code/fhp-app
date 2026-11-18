@@ -6,6 +6,9 @@
 - 변경은 PR로 올리고, 사용자가 **`+`** (또는 "머지해줘")라고 하면 그때 머지함.
 - 나중에 하기로 한 기능은 `docs/BACKLOG.md`에 있음. 사용자가 꺼내면 거기 적힌 대로 코드를 짬.
 
+## 지금 방향
+- 1차 프로토타입은 **노트북이 메인 디바이스**: 실시간 자세 측정은 노트북 웹캠만 씀. 휴대폰 카메라 연결은 숨김(`index.html`의 `data-phone="off"`, 보류 내용은 `docs/BACKLOG.md`)
+
 ## 구조 한눈에
 - `app/`: 휴대폰 앱 (Expo, React Native)
 - `server/`: Cloudflare Worker + 노트북 웹 (`server/public/index.html`). main에 머지되면 자동 배포
