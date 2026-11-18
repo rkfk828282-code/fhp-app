@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>실시간 자세 측정 · 거북목 체크</title>
+<!-- 휴대폰용 실시간 자세 측정: 노트북 웹캠 측정(posture.js)을 그대로 쓰고, 화면만 휴대폰에 맞춤.
+     휴대폰 앱은 이 페이지를 앱 안 화면(WebView)으로 띄움. 휴대폰 브라우저로 바로 열어도 됨 -->
+<style>
+@font-face { font-family: "Pretendard"; src: url("/fonts/PretendardSubset.woff2") format("woff2-variations"), url("/fonts/PretendardSubset.woff2") format("woff2"); font-weight: 45 920; font-display: swap; }
+:root {
+  --bg: #0B1B33; --surface: #12284A; --surface-2: #183259; --ink: #EAF2FF; --muted: #9DB0CE; --line: #22406B;
+  --accent: #3DDBB8; --accent-soft: #143F4C; --on-accent: #052B27; --ok: #4BE3B0; --warn: #FF8A7A; --tragus: #F2C230; --stage: #050C18;
+  --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+button, input { font-family: inherit; }
+.wrap { padding: max(12px, env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; max-width: 560px; margin: 0 auto; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.head h1 { font-size: 22px; margin: 0; letter-spacing: -0.3px; }
+.small { font-size: 13px; } .muted { color: var(--muted); }
+.screen { position: relative; background: var(--stage); border-radius: 16px; overflow: hidden; aspect-ratio: 3 / 4; max-height: 58vh; width: 100%; display: flex; align-items: center; justify-content: center; }
+.screen video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mirror { transform: scaleX(-1); }
+.placeholder { text-align: center; color: var(--muted); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.placeholder strong { color: var(--ink); font-size: 16px; }
+.guides { position: absolute; inset: 0; pointer-events: none; }
+.guides .v { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #ffffff66; }
+.guides .h { position: absolute; left: 0; right: 0; height: 1px; background: #ffffff33; }
+.mon-overlay { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
+.mon-badge { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3; color: #fff; font-weight: 800; font-size: 15px; padding: 6px 14px; border-radius: 999px; box-shadow: 0 2px 10px #0004; }
+.mon-alert { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; background: #B8432Fee; color: #fff; border-radius: 12px; padding: 10px 40px 10px 14px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.mon-alert button { position: absolute; top: 6px; right: 8px; border: 0; background: none; color: #fff; font-size: 16px; padding: 4px; }
+.btn { appearance: none; font: inherit; font-weight: 700; min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.gauge-box { padding: 12px; border-bottom: 1px solid var(--line); background: #0E2140; }
+.data { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.mon-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mon-switch { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; }
+.mon-switch .sw { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; height: 34px; border-radius: 999px; font-weight: 800; letter-spacing: .05em; background: var(--line); color: var(--muted); }
+.mon-switch[aria-pressed="true"] .sw { background: var(--accent); color: var(--on-accent); }
+.mon-switch:disabled { opacity: .5; }
+#monBody { display: flex; flex-direction: column; gap: 10px; }
+.mon-result { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 18px; }
+.mon-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mon-kv { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); padding-top: 10px; }
+.mon-kv > div { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.mon-kv > div + div { border-left: 1px solid var(--line); }
+.mon-kv b { font-variant-numeric: tabular-nums; font-size: 16px; }
+.mon-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+.mon-bar i { display: block; height: 100%; }
+.mon-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin-top: 6px; }
+.mon-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+.link-btn { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; padding: 4px; }
+details summary { font-size: 13px; font-weight: 700; cursor: pointer; }
+.th-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.th-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.th-grid input { font-size: 15px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); width: 100%; }
+/* 실시간 게이지 + 단계별 거북이 (live-gauge.js) */
+.live-gauge { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.live-gauge .lg-turtle { height: 76px; width: auto; }
+.live-gauge .lg-dial { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 220px; }
+.live-gauge svg { width: 100%; height: auto; display: block; }
+.live-gauge .lg-needle { will-change: transform; }
+.live-gauge .lg-label { display: flex; flex-direction: column; align-items: center; margin-top: -2px; }
+.live-gauge .lg-stage { font-size: 18px; }
+.live-gauge .lg-sub { font-size: 12px; color: var(--muted); text-align: center; }
+.live-gauge[data-off] .lg-turtle, .live-gauge[data-off] svg { opacity: .3; }
+.notice { text-align: center; font-size: 12px; color: var(--muted); margin: 0; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="head"><h1>실시간 자세 측정</h1><span class="small muted" id="frontState">꺼짐</span></div>
+
+  <div class="screen" id="frontScreen">
+    <div class="placeholder" id="frontWaiting">
+      <strong>전면 카메라로 자세를 봐요</strong>
+      <span class="small">휴대폰을 눈높이 정면에 세워 두고, 얼굴과 양쪽 어깨가 나오게 앉아요.</span>
+      <span class="small" id="frontErr"></span>
+    </div>
+    <video id="frontVideo" class="mirror" autoplay playsinline muted hidden></video>
+    <div class="guides" id="frontGuides" hidden><div class="v"></div><div class="h" style="top:33%"></div><div class="h" style="top:66%"></div></div>
+    <svg id="monOverlay" class="mon-overlay" preserveAspectRatio="xMidYMid slice" hidden aria-hidden="true"></svg>
+    <div class="mon-badge" id="monBadge" hidden></div>
+    <div class="mon-alert" id="monAlert" role="alert" hidden>
+      <b>거북목 자세가 5분 넘게 이어지고 있어요</b><span>턱을 살짝 당기고 화면에서 조금 떨어져 보세요.</span>
+      <button type="button" id="monAlertClose" aria-label="경고 닫기">✕</button>
+    </div>
+  </div>
+  <button class="btn" id="frontOnOff" type="button">카메라 켜기</button>
+
+  <div class="card">
+    <div class="gauge-box"><div id="monLiveGauge"></div></div>
+    <div class="data">
+      <div class="mon-head">
+        <div style="min-width:0"><b>자세 모니터링</b><div class="small muted" id="monHint"></div></div>
+        <button class="mon-switch" id="monOnOff" type="button" aria-pressed="false" disabled><span class="sw">OFF</span></button>
+      </div>
+      <div id="monBody" hidden>
+        <div class="mon-result" id="monResult"></div>
+        <div class="row">
+          <button class="btn" id="monCalib" type="button">기준 자세 저장</button>
+          <span class="small muted" id="monCalibInfo"></span>
+        </div>
+        <div class="mon-kv">
+          <div><span class="small muted">얼굴 면적 ΔS</span><b id="monNumS">–</b></div>
+          <div><span class="small muted">왼 어깨 ΔY / ΔX</span><b id="monNumL">–</b></div>
+          <div><span class="small muted">오른 어깨 ΔY / ΔX</span><b id="monNumR">–</b></div>
+        </div>
+        <div class="row" style="justify-content:space-between"><span class="small" style="font-weight:700">이번 세션 자세 비율</span>
+          <button class="link-btn" id="monReset" type="button">초기화</button></div>
+        <div id="monStats"></div>
+        <details>
+          <summary>판별 기준 조정</summary>
+          <div class="th-grid">
+            <label>얼굴 면적 변화 (%) <input id="thArea" type="number" step="1"></label>
+            <label>어깨 수직 변위 <input id="thVer" type="number" step="1"></label>
+            <label>어깨 수평 변위 <input id="thHor" type="number" step="1"></label>
+          </div>
+          <div class="small muted">기본값은 논문 값(10%, −11, 15)이에요. 어깨 값은 카메라 화면 크기에 맞춰 자동으로 비례 조정돼요.</div>
+          <button class="link-btn" id="thReset" type="button">기본값으로</button>
+        </details>
+        <div class="small muted">근거: 최홍석·김종남(2026), 실시간 거북목 증후군 검출 시스템, 융합신호처리학회논문지 27(4). 자가 자세 체크용이며 진단이 아니에요.</div>
+      </div>
+    </div>
+  </div>
+  <p class="notice">자가 자세 체크·기록용이며 질환을 진단하지 않습니다.</p>
+</main>
+
+<script>
+// 노트북 화면과 같은 저장값을 씀 (알림 방식·항상 켜기). 앱 안에서 열리면 자동으로 카메라와 판별을 켬
+const S = (() => { try { const v = JSON.parse(localStorage.getItem("neck.app.v2")) || {}; return { monitorAuto: true, alertWays: v.alertWays || { vibrate: true, push: true, sound: true } }; } catch { return { monitorAuto: true, alertWays: { vibrate: true, push: true, sound: true } }; } })();
+const $ = (id) => document.getElementById(id);
+let stream = null;
+function showOff() {
+  $("frontWaiting").hidden = false; $("frontVideo").hidden = true; $("frontGuides").hidden = true;
+  $("frontState").textContent = "꺼짐"; $("frontOnOff").textContent = "카메라 켜기"; $("frontOnOff").className = "btn primary";
+  window.dispatchEvent(new Event("webcam-off"));
+}
+function camOff() { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } $("frontVideo").srcObject = null; showOff(); }
+async function camOn() {
+  $("frontErr").textContent = "";
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+  } catch {
+    $("frontErr").textContent = "카메라를 켤 수 없어요. 카메라 권한을 허용한 뒤 다시 눌러 주세요."; return;
+  }
+  $("frontVideo").srcObject = stream;
+  $("frontWaiting").hidden = true; $("frontVideo").hidden = false; $("frontGuides").hidden = false;
+  $("frontState").textContent = "실시간"; $("frontOnOff").textContent = "카메라 끄기"; $("frontOnOff").className = "btn";
+  window.dispatchEvent(new Event("webcam-on"));
+  stream.getVideoTracks()[0].addEventListener("ended", () => { stream = null; showOff(); });
+}
+$("frontOnOff").addEventListener("click", () => (stream ? camOff() : camOn()));
+showOff();
+// 화면이 꺼지거나 앱을 벗어나면 카메라를 끄고, 돌아오면 다시 켬 (배터리 절약)
+document.addEventListener("visibilitychange", () => { if (document.hidden && stream) { camOff(); window.__resume = true; } else if (!document.hidden && window.__resume) { window.__resume = false; camOn(); } });
+// 앱(WebView)에서 열면 바로 시작
+if (/[?&]auto=1/.test(location.search)) window.addEventListener("load", camOn); // 판별 코드(posture.js)가 준비된 뒤
+</script>
+<script type="module" src="/posture.js"></script>
+</body>
+</html>
