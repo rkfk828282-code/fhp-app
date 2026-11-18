@@ -417,17 +417,19 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot .mon-alert button { position: absolute; top: 6px; right: 8px; appearance: none; border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; padding: 4px; } /* 위쪽 막대에 가리지 않게 */
 #dualRoot { display: flex; flex-direction: column; gap: 16px; }
 /* 실시간 게이지 + 단계별 거북이 */
-#dualRoot .live-gauge { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; background: #0B1B33d9; border: 1px solid #ffffff1f; border-radius: 14px; padding: 6px 10px; }
-#dualRoot .lg-overlay { position: absolute; left: 10px; bottom: 10px; z-index: 2; width: min(220px, 42%); backdrop-filter: blur(4px); }
-#dualRoot .lg-overlay[hidden] { display: none !important; }
-#dualRoot .live-gauge .lg-turtle { height: 56px; width: auto; transition: opacity .2s; }
-#dualRoot .live-gauge .lg-dial { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-#dualRoot .live-gauge svg { width: 100%; max-width: 220px; height: auto; display: block; }
+#dualRoot .card.monitor.split { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 0; padding: 0; overflow: hidden; }
+#dualRoot .mon-left { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; min-width: 0; overflow: auto; overscroll-behavior: contain; }
+#dualRoot .mon-right { border-left: 1px solid var(--line); display: flex; align-items: center; justify-content: center; padding: 10px; background: #0E2140; }
+#dualRoot .live-gauge { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
+#dualRoot .live-gauge .lg-turtle { height: 70px; width: auto; transition: opacity .2s; }
+#dualRoot .live-gauge .lg-dial { display: flex; flex-direction: column; align-items: center; width: 100%; }
+#dualRoot .live-gauge svg { width: 100%; max-width: 170px; height: auto; display: block; }
 #dualRoot .live-gauge .lg-needle { transition: transform .35s ease-out; }
-#dualRoot .live-gauge .lg-label { display: flex; flex-direction: column; align-items: center; margin-top: -4px; }
-#dualRoot .live-gauge .lg-stage { font-size: 16px; }
+#dualRoot .live-gauge .lg-label { display: flex; flex-direction: column; align-items: center; margin-top: -2px; }
+#dualRoot .live-gauge .lg-stage { font-size: 18px; }
 #dualRoot .live-gauge .lg-sub { font-size: 12px; color: var(--muted); text-align: center; }
-#dualRoot .live-gauge[data-off] .lg-turtle, #dualRoot .live-gauge[data-off] svg { opacity: .35; }
+#dualRoot .live-gauge[data-off] .lg-turtle, #dualRoot .live-gauge[data-off] svg { opacity: .3; }
+@media (max-width: 560px) { #dualRoot .card.monitor.split { grid-template-columns: 1fr; } #dualRoot .mon-right { border-left: 0; border-top: 1px solid var(--line); } }
 
 /* 노트북(넓고 충분히 높은 화면): 실시간 자세 측정을 스크롤 없이 한 화면에
    - 화면 높이에 맞춰 카메라 크기가 줄었다 늘었다 함
@@ -439,7 +441,8 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
   #dualRoot section.cam { display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto; gap: 8px; min-height: 0; }
   #dualRoot section.cam .screen { aspect-ratio: auto; height: auto; min-height: 0; }
   #dualRoot .ctrl .btn.big { min-height: 38px; font-size: 15px; }
-  #dualRoot section.cam .card.monitor { max-height: 36vh; overflow: auto; padding: 12px 14px; gap: 8px; overscroll-behavior: contain; }
+  #dualRoot section.cam .card.monitor { height: 38vh; min-height: 230px; }
+  #dualRoot .mon-left { padding: 12px 14px; gap: 8px; }
   #dualRoot .mon-result { font-size: 18px; }
   #dualRoot > .notice { margin: 0; font-size: 12px; }
   #dualRoot .placeholder { padding: 12px; gap: 6px; }
@@ -498,7 +501,6 @@ a.btn { text-decoration: none; }
         <!-- 옆모습 거북목 판별 표시 (휴대폰 영상은 거울 아님) -->
         <svg id="sideMonOverlay" class="mon-overlay plain" preserveAspectRatio="xMidYMid meet" hidden aria-hidden="true"></svg>
         <div class="mon-badge corner" id="sideMonBadge" hidden></div>
-        <div id="sideLiveGauge" class="lg-overlay" hidden></div>
         <div class="mon-alert" id="sideMonAlert" role="alert" hidden>
           <b>옆모습에서 거북목 자세가 5분 넘게 이어지고 있어요</b><span>귀가 어깨 위에 오도록 턱을 당기고 등을 펴 보세요.</span>
           <button type="button" id="sideMonAlertClose" aria-label="경고 닫기">✕</button>
@@ -509,7 +511,8 @@ a.btn { text-decoration: none; }
         <button class="btn big onoff" id="sideOnOff" type="button" data-state="on" aria-label="휴대폰 카메라 화면 끄기" disabled>OFF</button>
       </div>
       <!-- 옆모습 거북목 판별 (논문: 골격 데이터 학습 기반 거북목 판별) -->
-      <div class="card monitor">
+      <div class="card monitor split">
+        <div class="mon-left">
         <div class="mon-head">
           <div style="min-width:0"><b>옆모습 거북목 판별</b><div class="small muted" id="sideMonHint"></div></div>
           <button class="mon-switch" id="sideMonOnOff" type="button" aria-pressed="false" disabled><span class="sw">OFF</span></button>
@@ -538,6 +541,8 @@ a.btn { text-decoration: none; }
           <div class="small muted">근거: 김종현(2023), 사람 포즈와 골격 데이터 학습을 이용한 정확한 거북목 자세 판별, 한국컴퓨터정보학회논문지 28(8). 귀–어깨 각도는 어깨를 C7 대신 쓴 값이라 실제 CVA와 달라요. 자가 자세 체크용이며 진단이 아니에요.</div>
         </div>
       </div>
+        <div class="mon-right"><div id="sideLiveGauge"></div></div>
+      </div>
     </section>
 
     <section class="cam" aria-labelledby="frontTitle">
@@ -557,7 +562,6 @@ a.btn { text-decoration: none; }
         <!-- 자세 모니터링 표시 (영상과 같이 거울처럼) -->
         <svg id="monOverlay" class="mon-overlay" preserveAspectRatio="xMidYMid meet" hidden aria-hidden="true"></svg>
         <div class="mon-badge" id="monBadge" hidden></div>
-        <div id="monLiveGauge" class="lg-overlay" hidden></div>
         <div class="mon-alert" id="monAlert" role="alert" hidden>
           <b>거북목 자세가 5분 넘게 이어지고 있어요</b><span>턱을 살짝 당기고 화면에서 조금 떨어져 앉아 보세요.</span>
           <button type="button" id="monAlertClose" aria-label="경고 닫기">✕</button>
@@ -568,7 +572,8 @@ a.btn { text-decoration: none; }
         <button class="btn big onoff" id="frontOnOff" type="button" data-state="off" aria-label="웹캠 켜기">ON</button>
       </div>
       <!-- 자세 모니터링 (논문: 정면 웹캠 실시간 거북목 검출) -->
-      <div class="card monitor">
+      <div class="card monitor split">
+        <div class="mon-left">
         <div class="mon-head">
           <div style="min-width:0"><b>자세 모니터링</b><div class="small muted" id="monHint"></div></div>
           <button class="mon-switch" id="monOnOff" type="button" aria-pressed="false" disabled><span class="sw">OFF</span></button>
@@ -600,6 +605,8 @@ a.btn { text-decoration: none; }
           </details>
           <div class="small muted">근거: 최홍석·김종남(2026), 실시간 거북목 증후군 검출 시스템, 융합신호처리학회논문지 27(4). 자가 자세 체크용이며 진단이 아니에요.</div>
         </div>
+      </div>
+        <div class="mon-right"><div id="monLiveGauge"></div></div>
       </div>
     </section>
   </div>

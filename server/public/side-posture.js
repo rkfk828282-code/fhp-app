@@ -28,6 +28,7 @@ let rec = null; // { kind, until }
 const recent = [];
 const stats = { good: 0, bad: 0 };
 const live = createLiveGauge($("sideLiveGauge"), { title: "옆모습으로 본 지금 자세" });
+live.set(null, "판별을 켜면 움직여요");
 const neck = neckTimer($("sideMonAlert"), "귀가 어깨 위에 오도록 턱을 당기고 등을 펴 보세요."); // 5분 넘게 이어지면 알림
 
 async function loadModel() {
@@ -196,13 +197,13 @@ async function start() {
   catch { running = false; wanted = false; renderToggle(); $("sideMonHint").textContent = "자세 판별 모델을 불러오지 못했어요. 새로고침 후 다시 켜 주세요."; return; }
   if (!running) return;
   $("sideMonOverlay").removeAttribute("hidden");
-  $("sideLiveGauge").hidden = false; live.reset();
+  live.reset();
   lastTick = 0; renderStats(); renderLearn();
   stopLoop = bgLoop(tick, 66, 500); // 안 보일 때는 0.5초마다
 }
 function stop(keepWanted = false) {
   if (!keepWanted) wanted = false;
-  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("side", ""); $("sideLiveGauge").hidden = true; rec = null; neck.reset();
+  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("side", ""); live.set(null, "판별을 켜면 움직여요"); rec = null; neck.reset();
   $("sideMonOverlay").setAttribute("hidden", ""); $("sideMonOverlay").innerHTML = ""; $("sideMonBadge").hidden = true; $("sideMonAlert").hidden = true;
   renderToggle();
 }

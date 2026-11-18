@@ -34,6 +34,7 @@ let th = { ...DEFAULT_TH, ...store.get("neck.monitor.th", {}) };
 const recent = []; // 최근 판별 결과 (깜빡임 줄이기)
 const stats = Object.fromEntries(ORDER.map((k) => [k, 0]));
 const live = createLiveGauge($("monLiveGauge"), { title: "웹캠으로 본 지금 자세" });
+live.set(null, "판별을 켜면 움직여요");
 const neck = neckTimer($("monAlert"), "턱을 살짝 당기고 화면에서 조금 떨어져 앉아 보세요."); // 5분 넘게 이어지면 알림
 
 /* ===== 계산 (논문 식 1~5) ===== */
@@ -193,13 +194,13 @@ async function start() {
   catch { running = false; renderToggle(); $("monHint").textContent = "자세 판별 모델을 불러오지 못했어요. 새로고침 후 다시 켜 주세요."; return; }
   if (!running) return;
   $("monOverlay").removeAttribute("hidden");
-  $("monLiveGauge").hidden = false; live.reset();
+  live.reset();
   lastTick = 0; renderStats();
   $("monCalibInfo").textContent = calib ? `저장된 기준 자세 사용 중 (${new Date(calib.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })})` : "";
   stopLoop = bgLoop(tick, 50, 500); // 안 보일 때는 0.5초마다
 }
 function stop() {
-  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("front", ""); $("monLiveGauge").hidden = true; calibrating = null; neck.reset();
+  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("front", ""); live.set(null, "판별을 켜면 움직여요"); calibrating = null; neck.reset();
   $("monOverlay").setAttribute("hidden", ""); $("monOverlay").innerHTML = ""; $("monBadge").hidden = true; $("monAlert").hidden = true;
   renderToggle();
 }
