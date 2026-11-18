@@ -416,6 +416,19 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 #dualRoot .mon-alert b { font-size: 15px; }
 #dualRoot .mon-alert button { position: absolute; top: 6px; right: 8px; appearance: none; border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; padding: 4px; } /* 위쪽 막대에 가리지 않게 */
 #dualRoot { display: flex; flex-direction: column; gap: 16px; }
+/* 실시간 게이지 + 단계별 거북이 */
+#dualRoot .live-gauge { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; background: #0B1B33d9; border: 1px solid #ffffff1f; border-radius: 14px; padding: 6px 10px; }
+#dualRoot .lg-overlay { position: absolute; left: 10px; bottom: 10px; z-index: 2; width: min(220px, 42%); backdrop-filter: blur(4px); }
+#dualRoot .lg-overlay[hidden] { display: none !important; }
+#dualRoot .live-gauge .lg-turtle { height: 56px; width: auto; transition: opacity .2s; }
+#dualRoot .live-gauge .lg-dial { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+#dualRoot .live-gauge svg { width: 100%; max-width: 220px; height: auto; display: block; }
+#dualRoot .live-gauge .lg-needle { transition: transform .35s ease-out; }
+#dualRoot .live-gauge .lg-label { display: flex; flex-direction: column; align-items: center; margin-top: -4px; }
+#dualRoot .live-gauge .lg-stage { font-size: 16px; }
+#dualRoot .live-gauge .lg-sub { font-size: 12px; color: var(--muted); text-align: center; }
+#dualRoot .live-gauge[data-off] .lg-turtle, #dualRoot .live-gauge[data-off] svg { opacity: .35; }
+
 /* 노트북(넓고 충분히 높은 화면): 실시간 자세 측정을 스크롤 없이 한 화면에
    - 화면 높이에 맞춰 카메라 크기가 줄었다 늘었다 함
    - 판별 카드는 높이를 정해 두고, 넘치는 내용(숫자·학습·근거)은 카드 안에서만 스크롤 */
@@ -485,6 +498,7 @@ a.btn { text-decoration: none; }
         <!-- 옆모습 거북목 판별 표시 (휴대폰 영상은 거울 아님) -->
         <svg id="sideMonOverlay" class="mon-overlay plain" preserveAspectRatio="xMidYMid meet" hidden aria-hidden="true"></svg>
         <div class="mon-badge corner" id="sideMonBadge" hidden></div>
+        <div id="sideLiveGauge" class="lg-overlay" hidden></div>
         <div class="mon-alert" id="sideMonAlert" role="alert" hidden>
           <b>옆모습에서 거북목 자세가 5분 넘게 이어지고 있어요</b><span>귀가 어깨 위에 오도록 턱을 당기고 등을 펴 보세요.</span>
           <button type="button" id="sideMonAlertClose" aria-label="경고 닫기">✕</button>
@@ -543,6 +557,7 @@ a.btn { text-decoration: none; }
         <!-- 자세 모니터링 표시 (영상과 같이 거울처럼) -->
         <svg id="monOverlay" class="mon-overlay" preserveAspectRatio="xMidYMid meet" hidden aria-hidden="true"></svg>
         <div class="mon-badge" id="monBadge" hidden></div>
+        <div id="monLiveGauge" class="lg-overlay" hidden></div>
         <div class="mon-alert" id="monAlert" role="alert" hidden>
           <b>거북목 자세가 5분 넘게 이어지고 있어요</b><span>턱을 살짝 당기고 화면에서 조금 떨어져 앉아 보세요.</span>
           <button type="button" id="monAlertClose" aria-label="경고 닫기">✕</button>
