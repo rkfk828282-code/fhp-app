@@ -5,7 +5,6 @@
 // - 기준 자세 보정(캘리브레이션) 후 임계값으로 5가지 자세 분류
 // - 논문 임계값: 면적 10%, 어깨 수직 -11, 어깨 수평 15 (FHD 영상 픽셀 기준 → 화면 크기에 비례해 조정)
 // 자가 자세 체크용이며 진단이 아닙니다.
-import { FilesetResolver, FaceLandmarker, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
 import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
 import { bgLoop, grabFrame, setTabStatus } from "/bg-loop.js";
 import { createLiveGauge } from "/live-gauge.js";
@@ -65,6 +64,7 @@ async function loadModels() {
   if (face && pose) return;
   if (loading) return loading;
   loading = (async () => {
+    const { FilesetResolver, FaceLandmarker, PoseLandmarker } = await import("/mediapipe/vision_bundle.mjs"); // 켤 때 처음 한 번만 불러옴
     const files = await FilesetResolver.forVisionTasks("/mediapipe/wasm");
     const make = async (Kind, path, extra) => {
       try { return await Kind.createFromOptions(files, { baseOptions: { modelAssetPath: path, delegate: "GPU" }, runningMode: "VIDEO", ...extra }); }
@@ -118,7 +118,7 @@ function draw(W, H, pts, r) {
 // 한 번 돌기: 판별할 그림을 가져와서(다른 창을 봐도 됨) step 실행
 async function tick() {
   if (!running || busy) return;
-  if (performance.now() - lastRun < 45) return;
+  if (performance.now() - lastRun < 95) return; // 약 10번/초
   busy = true;
   const frame = await grabFrame($("frontVideo"));
   try { if (frame && running) step(frame, performance.now()); }
@@ -197,7 +197,7 @@ async function start() {
   live.reset();
   lastTick = 0; renderStats();
   $("monCalibInfo").textContent = calib ? `저장된 기준 자세 사용 중 (${new Date(calib.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })})` : "";
-  stopLoop = bgLoop(tick, 50, 500); // 안 보일 때는 0.5초마다
+  stopLoop = bgLoop(tick, 100, 500); // 안 보일 때는 0.5초마다
 }
 function stop() {
   running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("front", ""); live.set(null, "판별을 켜면 움직여요"); calibrating = null; neck.reset();
