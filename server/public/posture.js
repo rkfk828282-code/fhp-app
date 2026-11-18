@@ -26,7 +26,7 @@ const store = {
 };
 
 let face = null, pose = null, loading = null;
-let running = false, stopLoop = null, busy = false, lastRun = 0, lastTick = 0;
+let running = false, stopLoop = null, busy = false, lastRun = 0, lastTick = 0, cost = 30, minGap = 60;
 let calib = store.get("neck.monitor.calib", null); // { S, L:{x,y}, R:{x,y} }
 let calibrating = null; // { until, samples: [] }
 let th = { ...DEFAULT_TH, ...store.get("neck.monitor.th", {}) };
@@ -118,10 +118,16 @@ function draw(W, H, pts, r) {
 // 한 번 돌기: 판별할 그림을 가져와서(다른 창을 봐도 됨) step 실행
 async function tick() {
   if (!running || busy) return;
-  if (performance.now() - lastRun < 95) return; // 약 10번/초
+  if (performance.now() - lastRun < minGap) return; // 노트북이 감당하는 만큼만 (최대 약 20번/초)
   busy = true;
   const frame = await grabFrame($("frontVideo"));
-  try { if (frame && running) step(frame, performance.now()); }
+  try {
+    if (frame && running) {
+      const t0 = performance.now(); step(frame, t0);
+      // 한 번 판별에 걸린 시간을 보고 간격을 정함: 빠른 노트북은 자주, 느린 노트북은 덜 자주 (화면이 버벅이지 않게)
+      cost = cost * 0.8 + (performance.now() - t0) * 0.2; minGap = Math.max(45, Math.min(200, cost * 1.8));
+    }
+  }
   finally { if (frame) frame.close(); busy = false; }
 }
 function step(frame, now) {
@@ -197,7 +203,7 @@ async function start() {
   live.reset();
   lastTick = 0; renderStats();
   $("monCalibInfo").textContent = calib ? `저장된 기준 자세 사용 중 (${new Date(calib.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })})` : "";
-  stopLoop = bgLoop(tick, 100, 500); // 안 보일 때는 0.5초마다
+  stopLoop = bgLoop(tick, 25, 500); // 안 보일 때는 0.5초마다
 }
 function stop() {
   running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("front", ""); live.set(null, "판별을 켜면 움직여요"); calibrating = null; neck.reset();
