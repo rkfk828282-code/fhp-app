@@ -24,20 +24,29 @@ export function createLiveGauge(el, { title = "지금 자세" } = {}) {
       <div class="lg-label"><b class="lg-stage">–</b><span class="lg-sub"></span></div>
     </div>`;
   const needle = el.querySelector(".lg-needle"), img = el.querySelector(".lg-turtle"), stage = el.querySelector(".lg-stage"), sub = el.querySelector(".lg-sub");
-  let shown = null, mood = "good";
+  // 바늘은 화면 새로 그릴 때마다(1초 60번) 목표 쪽으로 조금씩 → 판별이 1초 10번이어도 부드럽게
+  let target = null, shown = null, mood = "good", raf = 0, lastStage = "", lastSub = "";
+  const frame = () => {
+    raf = 0;
+    if (target === null) return;
+    shown = shown === null ? target : shown + (target - shown) * 0.25;
+    needle.style.transform = `rotate(${(shown * 180).toFixed(2)}deg)`;
+    const st = stageOf(shown);
+    if (st.t !== lastStage) { lastStage = st.t; stage.textContent = st.t; stage.style.color = st.c; }
+    if (st.mood !== mood) { mood = st.mood; img.src = `/img/turtle_${mood}.png`; img.alt = `${st.t} 거북이`; }
+    if (Math.abs(target - shown) > 0.002) raf = requestAnimationFrame(frame);
+  };
+  const setSub = (t) => { if (t !== lastSub) { lastSub = t; sub.textContent = t; } };
   return {
     /** score 0~1, 없으면 null(인식 안 됨). note = 아래 작은 글 */
     set(score, note = "") {
+      setSub(note);
       if (score === null || score === undefined || !Number.isFinite(score)) {
-        el.dataset.off = "1"; stage.textContent = "–"; stage.style.color = ""; sub.textContent = note; return;
+        target = null; el.dataset.off = "1"; lastStage = "–"; stage.textContent = "–"; stage.style.color = ""; return;
       }
       delete el.dataset.off;
-      const s = Math.max(0, Math.min(1, score));
-      shown = shown === null ? s : shown + (s - shown) * 0.35; // 바늘 흔들림 줄이기
-      needle.style.transform = `rotate(${shown * 180}deg)`;
-      const st = stageOf(shown);
-      stage.textContent = st.t; stage.style.color = st.c; sub.textContent = note;
-      if (st.mood !== mood) { mood = st.mood; img.src = `/img/turtle_${mood}.png`; img.alt = `${st.t} 거북이`; }
+      target = Math.max(0, Math.min(1, score));
+      if (!raf) raf = requestAnimationFrame(frame);
     },
     reset() { shown = null; this.set(null); },
   };

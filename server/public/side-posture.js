@@ -20,7 +20,7 @@ const store = {
 };
 
 let pose = null, loading = null;
-let running = false, stopLoop = null, busy = false, lastRun = 0, lastTick = 0;
+let running = false, stopLoop = null, busy = false, lastRun = 0, lastTick = 0, cost = 30, minGap = 60;
 let samples = store.get(K_SAMPLES, { good: [], bad: [] }); // 녹화한 골격 점 (H로 나눈 값)
 let model = store.get(K_MODEL, null); // { net, valAcc, trainAcc, n, at }
 let rec = null; // { kind, until }
@@ -95,10 +95,16 @@ function draw(W, H, pts, color) {
 // 한 번 돌기: 판별할 그림을 가져와서(다른 창을 봐도 됨) step 실행
 async function tick() {
   if (!running || busy) return;
-  if (performance.now() - lastRun < 95) return; // 약 10번/초
+  if (performance.now() - lastRun < minGap) return; // 노트북이 감당하는 만큼만 (최대 약 20번/초)
   busy = true;
   const frame = await grabFrame($("sideVideo"));
-  try { if (frame && running) step(frame, performance.now()); }
+  try {
+    if (frame && running) {
+      const t0 = performance.now(); step(frame, t0);
+      // 한 번 판별에 걸린 시간을 보고 간격을 정함: 빠른 노트북은 자주, 느린 노트북은 덜 자주 (화면이 버벅이지 않게)
+      cost = cost * 0.8 + (performance.now() - t0) * 0.2; minGap = Math.max(45, Math.min(200, cost * 1.8));
+    }
+  }
   finally { if (frame) frame.close(); busy = false; }
 }
 function step(frame, now) {
@@ -199,7 +205,7 @@ async function start() {
   $("sideMonOverlay").removeAttribute("hidden");
   live.reset();
   lastTick = 0; renderStats(); renderLearn();
-  stopLoop = bgLoop(tick, 100, 500); // 안 보일 때는 0.5초마다
+  stopLoop = bgLoop(tick, 25, 500); // 안 보일 때는 0.5초마다
 }
 function stop(keepWanted = false) {
   if (!keepWanted) wanted = false;
