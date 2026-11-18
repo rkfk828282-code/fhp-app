@@ -10,11 +10,38 @@ type Role = "phone" | "viewer";
 export interface Env {
   ROOMS: DurableObjectNamespace<Room>;
   ASSETS: Fetcher;
+  // Cloudflare TURN 키 (대시보드 → Realtime → TURN Server). Worker 설정의 비밀값으로 넣음. 없으면 STUN만 씀
+  TURN_KEY_ID?: string;
+  TURN_KEY_API_TOKEN?: string;
+}
+
+const STUN_ONLY = { iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }], relay: false };
+
+/** 폰과 노트북이 다른 네트워크(와이파이 ↔ LTE·5G)여도 영상이 오가도록 TURN 중계 서버 접속 정보를 짧게(하루) 발급 */
+async function turnServers(env: Env): Promise<Response> {
+  const headers = { "Content-Type": "application/json", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" };
+  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return new Response(JSON.stringify(STUN_ONLY), { headers });
+  try {
+    const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ ttl: 86400 }),
+    });
+    if (!r.ok) throw new Error(`TURN ${r.status}`);
+    const j = (await r.json()) as { iceServers: unknown };
+    const list = (Array.isArray(j.iceServers) ? j.iceServers : [j.iceServers]) as { urls: string | string[]; username?: string; credential?: string }[];
+    // 53번 포트 주소는 브라우저에서 막혀 연결만 늦어지므로 뺌 (Cloudflare 안내)
+    const ice = list.map((s) => ({ ...s, urls: ([] as string[]).concat(s.urls).filter((u) => !/:53(\?|$)/.test(u)) })).filter((s) => s.urls.length);
+    return new Response(JSON.stringify({ iceServers: ice, relay: true }), { headers });
+  } catch {
+    return new Response(JSON.stringify(STUN_ONLY), { headers });
+  }
 }
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
+    if (url.pathname === "/turn") return turnServers(env);
     const m = url.pathname.match(/^\/ws\/(\d{6})$/);
     if (m) {
       if (req.headers.get("Upgrade") !== "websocket") {
