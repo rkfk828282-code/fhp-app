@@ -2,7 +2,6 @@
 // 근거: 김종현(2023), 한국컴퓨터정보학회논문지 28(8), 87-93. 계산은 side-model.js
 // 흐름: 휴대폰 옆모습 영상 → MediaPipe Pose 골격 → 12개 값 → 내 자세로 학습한 작은 신경망 → 바른 자세 / 거북목
 // 자가 자세 체크용이며 진단이 아닙니다.
-import { FilesetResolver, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
 import { features, jitter, pickPoints, predict, readout, train } from "/side-model.js";
 import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
 import { bgLoop, grabFrame, setTabStatus } from "/bg-loop.js";
@@ -35,6 +34,7 @@ async function loadModel() {
   if (pose) return;
   if (loading) return loading;
   loading = (async () => {
+    const { FilesetResolver, PoseLandmarker } = await import("/mediapipe/vision_bundle.mjs"); // 켤 때 처음 한 번만 불러옴
     const files = await FilesetResolver.forVisionTasks("/mediapipe/wasm");
     const opts = (delegate) => ({ baseOptions: { modelAssetPath: "/mediapipe/models/pose_landmarker_lite.task", delegate }, runningMode: "VIDEO", numPoses: 1 });
     try { pose = await PoseLandmarker.createFromOptions(files, opts("GPU")); }
@@ -95,7 +95,7 @@ function draw(W, H, pts, color) {
 // 한 번 돌기: 판별할 그림을 가져와서(다른 창을 봐도 됨) step 실행
 async function tick() {
   if (!running || busy) return;
-  if (performance.now() - lastRun < 61) return;
+  if (performance.now() - lastRun < 95) return; // 약 10번/초
   busy = true;
   const frame = await grabFrame($("sideVideo"));
   try { if (frame && running) step(frame, performance.now()); }
@@ -199,7 +199,7 @@ async function start() {
   $("sideMonOverlay").removeAttribute("hidden");
   live.reset();
   lastTick = 0; renderStats(); renderLearn();
-  stopLoop = bgLoop(tick, 66, 500); // 안 보일 때는 0.5초마다
+  stopLoop = bgLoop(tick, 100, 500); // 안 보일 때는 0.5초마다
 }
 function stop(keepWanted = false) {
   if (!keepWanted) wanted = false;
