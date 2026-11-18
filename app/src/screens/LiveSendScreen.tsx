@@ -49,6 +49,7 @@ export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"environment" | "user">("environment");
   const facingRef = useRef<"environment" | "user">("environment");
+  const chainRef = useRef<Promise<void>>(Promise.resolve());
   useEffect(() => { iceServers(); }, []); // 화면을 열 때 미리 받아 둠 (연결이 빨라지게)
   const [flipping, setFlipping] = useState(false);
   const tiltRef = useRef(tilt);
@@ -111,7 +112,8 @@ export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
     const ws = new WebSocket(url);
     wsRef.current = ws;
     ws.onopen = () => setStatus("waiting");
-    ws.onmessage = (e) => { try { handle(JSON.parse(String(e.data))); } catch {} };
+    // 받은 순서대로 하나씩 처리 (answer 설정 전에 연결 후보가 처리되면 버려져서 연결이 늦어졌음)
+    ws.onmessage = (e) => { let msg: any; try { msg = JSON.parse(String(e.data)); } catch { return; } chainRef.current = chainRef.current.then(() => handle(msg)).catch(() => {}); };
     ws.onclose = (e) => {
       if (wsRef.current !== ws) return;
       if (activeRef.current && e.code !== 4000) setTimeout(() => activeRef.current && connect(c), 2000);

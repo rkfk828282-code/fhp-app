@@ -144,10 +144,12 @@ function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws/${code}?role=phone`);
   ws.onopen = () => setStatus("노트북 기다리는 중", false);
-  ws.onmessage = (e) => handle(JSON.parse(e.data));
+  // 메시지를 받은 순서대로 하나씩 처리 (영상 정보 설정이 끝나기 전에 연결 후보가 먼저 처리되면 버려져서 연결이 늦어졌음)
+  ws.onmessage = (e) => { const msg = JSON.parse(e.data); msgChain = msgChain.then(() => handle(msg)).catch(() => {}); };
   ws.onclose = (e) => { setStatus("다시 연결 중", false); if (e.code !== 4000) setTimeout(connect, 2000); };
 }
 
+let msgChain = Promise.resolve();
 async function handle(msg) {
   switch (msg.type) {
     case "peer-joined": await startPeer(); break;
