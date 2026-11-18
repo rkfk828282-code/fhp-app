@@ -18,7 +18,7 @@ const SLIDES: Slide[] = [
   { bg: "#0F6E5E", t: "이번 주 목 각도\n얼마나 좋아졌을까?", s: "주간 변화 확인하기", art: "📈", tab: "records" },
   { bg: "#8E4E22", t: "CVA가 뭐예요?\n목 각도 쉽게 알기", s: "1분 설명 읽기", art: "📐", tab: "home", route: "cva" },
   { bg: "#2A5498", t: "50분 앉아 있었다면\n목 운동할 시간", s: "자가운동 타이머 보기", art: "⏰", tab: "exercise" },
-  { bg: "#4E3CB0", t: "혼자서도 정확하게\n노트북 보며 촬영", s: "노트북 촬영 시작하기", art: "💻", tab: "measure", route: "live" },
+  { bg: "#4E3CB0", t: "지금 내 목, 괜찮을까?\n실시간으로 확인", s: "실시간 자세 측정하기", art: "📷", tab: "measure", route: "monitor" },
 ];
 
 export function NeckArt({ size = 150 }: { size?: number }) {
@@ -128,7 +128,7 @@ export default function HomeScreen() {
 
       <SecHead title="바로가기" />
       <View style={styles.shortcuts}>
-        {([["📸", "폰 촬영", "measure", "photo"], ["💻", "노트북 촬영", "measure", "live"], ["🧘", "스트레칭", "exercise", undefined], ["📊", "주간 리포트", "records", undefined]] as const).map(([e, l, t, r]) => (
+        {([["📷", "실시간 측정", "measure", "monitor"], ["📈", "기록 보기", "records", undefined], ["🧘", "스트레칭", "exercise", undefined]] as const).map(([e, l, t, r]) => (
           <Pressable key={l} accessibilityRole="button" onPress={() => go(t, r)} style={styles.sc}>
             <Text style={{ fontSize: 36 }}>{e}</Text>
             <Text weight="bold" style={{ fontSize: 13 }}>{l}</Text>

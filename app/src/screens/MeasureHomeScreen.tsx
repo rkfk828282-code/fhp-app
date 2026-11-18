@@ -1,4 +1,4 @@
-// 측정 탭 첫 화면: 최근 결과 + 측정 방법 고르기
+// 측정 탭 첫 화면: 최근 결과 + 실시간 자세 측정 버튼 하나
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gauge } from "../components/Gauge";
@@ -9,10 +9,10 @@ import { useAppState } from "../store/AppState";
 import { colors, TAG_LABEL } from "../theme";
 import { formatDateTime } from "../utils/format";
 
-export default function MeasureHomeScreen({ onPhoto, onLive }: { onPhoto: () => void; onLive: () => void }) {
+export default function MeasureHomeScreen({ onMonitor }: { onMonitor: () => void }) {
   // 제목 줄은 다른 탭과 같은 모양
   const insets = useSafeAreaInsets();
-  const { records, settings } = useAppState();
+  const { records } = useAppState();
   const { showSummary } = useNav();
   const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
   const last = sorted.length ? sorted[sorted.length - 1] : null, prev = sorted.length > 1 ? sorted[sorted.length - 2] : null;
@@ -45,19 +45,9 @@ export default function MeasureHomeScreen({ onPhoto, onLive }: { onPhoto: () => 
         </Card>
       )}
 
-      {/* 2. 측정 버튼 */}
-      <Button kind="primary" big title="📸  폰으로 측정하기" onPress={onPhoto} />
-      <Button big title="💻  노트북 보면서 촬영" onPress={onLive} />
-      <Text style={[textStyles.muted, { textAlign: "center" }]}>혼자 잴 때는 폰을 세워 두고 노트북으로 보면서 찍어요 · 기준값 {settings.threshold}° (MY에서 변경)</Text>
-
-      <Card style={{ backgroundColor: colors.accentSoft, borderColor: colors.accentSoft }}>
-        <Text weight="bold" style={{ color: colors.ok }}>정확하게 재는 법</Text>
-        <Text style={{ fontSize: 13, lineHeight: 21 }}>
-          • 카메라를 어깨 높이에서 몸과 직각으로 두어요{"\n"}
-          • 귀 이주와 C7(목 뒤 가장 튀어나온 뼈)에 작은 스티커를 붙여요{"\n"}
-          • 편하게 정면을 보고 선 자세에서 찍어요
-        </Text>
-      </Card>
+      {/* 2. 측정 버튼: 노트북 웹캠 측정과 같은 실시간 자세 측정 */}
+      <Button kind="primary" big title="📷  실시간 자세 측정" onPress={onMonitor} />
+      <Text style={[textStyles.muted, { textAlign: "center" }]}>전면 카메라로 얼굴과 어깨를 보고 3초 기준을 잡은 뒤, 게이지와 데이터로 자세를 실시간으로 보여 줘요</Text>
     </ScrollView>
   );
 }

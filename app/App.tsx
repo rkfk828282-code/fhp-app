@@ -13,6 +13,7 @@ import CvaInfoScreen from "./src/screens/CvaInfoScreen";
 import MeasureHomeScreen from "./src/screens/MeasureHomeScreen";
 import PhotoMeasureScreen from "./src/screens/PhotoMeasureScreen";
 import LiveSendScreen from "./src/screens/LiveSendScreen";
+import MonitorScreen from "./src/screens/MonitorScreen";
 import SummaryScreen from "./src/screens/SummaryScreen";
 import RecordsScreen from "./src/screens/RecordsScreen";
 import ExerciseScreen from "./src/screens/ExerciseScreen";
@@ -56,7 +57,7 @@ function Main() {
   };
 
   // 카메라 화면은 탭바 없이 전체 화면
-  const fullScreen = tab === "measure" && (route === "photo" || route === "live");
+  const fullScreen = tab === "measure" && (route === "photo" || route === "live" || route === "monitor");
 
   // 안드로이드 뒤로가기: 세부 화면 → 탭 첫 화면 → 홈
   useEffect(() => {
@@ -75,7 +76,8 @@ function Main() {
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <View style={{ flex: 1 }}>
           {tab === "home" && (route === "cva" ? <CvaInfoScreen /> : <HomeScreen />)}
-          {tab === "measure" && route === "main" && <MeasureHomeScreen onPhoto={() => go("measure", "photo")} onLive={() => go("measure", "live")} />}
+          {tab === "measure" && route === "main" && <MeasureHomeScreen onMonitor={() => go("measure", "monitor")} />}
+          {tab === "measure" && route === "monitor" && <MonitorScreen onBack={() => go("measure")} />}
           {tab === "measure" && route === "photo" && <PhotoMeasureScreen onBack={() => go("measure")} />}
           {tab === "measure" && route === "live" && <LiveSendScreen onBack={() => go("measure")} />}
           {tab === "measure" && route === "summary" && <SummaryScreen />}

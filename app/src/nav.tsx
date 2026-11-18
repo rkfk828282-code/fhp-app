@@ -4,7 +4,7 @@ import type { MeasureRecord } from "./store/AppState";
 
 export type TabKey = "home" | "measure" | "records" | "exercise" | "my";
 // home: cva(CVA 설명) / measure: photo, live, summary
-export type Route = "main" | "cva" | "photo" | "live" | "summary";
+export type Route = "main" | "cva" | "photo" | "live" | "summary" | "monitor";
 export type MyPanel = "alarm" | "data" | "info" | null;
 
 export type Summary = { rec: MeasureRecord; prev: MeasureRecord | null; side?: string | null };
