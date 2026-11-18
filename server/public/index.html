@@ -728,7 +728,7 @@ function persist() { try { localStorage.setItem(KEY, JSON.stringify({ records: S
 
 const saved = load();
 const S = {
-  tab: "home", route: "home",        // 측정 탭 안: home | photo | live
+  tab: location.hash === "#measure" ? "measure" : "home", route: "home",        // 측정 탭 안: home | photo | live
   records: saved.records, threshold: saved.threshold,
   sessions: saved.sessions, goal: saved.goal, reminder: saved.reminder, myPanel: null, alertWays: saved.alertWays || { vibrate: true, push: true, sound: true }, monitorAuto: !!saved.monitorAuto,
   photo: null, pts: { tragus: null, c7: null }, tag: "none", saved: false, confirmClear: false,
@@ -762,7 +762,11 @@ function pageHead(tab, title, right = "") {
   return `<div class="page-head"><span class="logo soft" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[tab]}</svg></span>
     <h1>${title}</h1>${right ? `<span class="side">${right}</span>` : ""}</div>`;
 }
-function go(tab, route = "home") { S.tab = tab; S.route = route; render(); }
+function go(tab, route = "home") {
+  // 휴대폰(좁은 화면) 실시간 자세 측정 → 폰 전용 화면(전면 카메라)으로 이동
+  if (tab === "measure" && (route === "mon" || (route === "dual" && !isWide()))) { location.href = "/monitor.html?auto=1"; return; }
+  S.tab = tab; S.route = route; render();
+}
 const isWide = () => matchMedia("(min-width: 900px)").matches;
 const NAV_EXTRA = [["measure,dual", "실시간 자세 측정", '<rect x="2" y="5" width="13" height="10" rx="1.5"/><path d="M1 18h15"/><rect x="17" y="8" width="6" height="11" rx="1.2"/>'],
                    ["measure,photo", "사진으로 측정", '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M20 15l-5-5-9 10"/>'],
@@ -850,7 +854,7 @@ const SLIDES = [
   { bg: "linear-gradient(120deg,#0F7A66,#12284A)", t: "이번 주 목 각도<br>얼마나 좋아졌을까?", s: "주간 변화 확인하기", art: "📈", go: ["records"] },
   { bg: "linear-gradient(120deg,#A65A23,#12284A)", t: "CVA가 뭐예요?<br>목 각도 쉽게 알기", s: "1분 설명 읽기", art: "📐", go: ["home", "cva"] },
   { bg: "linear-gradient(120deg,#2F62B5,#12284A)", t: "50분 앉아 있었다면<br>목 운동할 시간", s: "자가운동 타이머 보기", art: "⏰", go: ["exercise"] },
-  { bg: "linear-gradient(120deg,#5A44C2,#12284A)", t: "혼자서도 정확하게<br>노트북 보며 촬영", s: "노트북 촬영 시작하기", art: "💻", go: ["measure", "live"], wide: ["measure", "dual"] },
+  { bg: "linear-gradient(120deg,#5A44C2,#12284A)", t: "지금 내 목, 괜찮을까?<br>실시간으로 확인", s: "실시간 자세 측정하기", art: "📷", go: ["measure", "mon"], wide: ["measure", "dual"] },
 ];
 const TIPS = ["모니터 위쪽 끝을 눈높이에 맞춰요", "폰은 눈높이로 들어 올려서 봐요", "턱을 살짝 당기고 귀와 어깨를 일직선으로", "50분 앉았다면 일어나서 목을 풀어 줘요"];
 function homeScreen() {
@@ -894,8 +898,7 @@ function homeScreen() {
 
     <div class="sec-head"><h2>바로가기</h2><button class="chipbtn" type="button">편집</button></div>
     <div class="shortcuts">
-      <button class="sc" type="button" data-go="measure,photo"><span class="e" aria-hidden="true">📸</span>폰 촬영</button>
-      <button class="sc" type="button" data-go="${isWide() ? "measure,dual" : "measure,live"}"><span class="e" aria-hidden="true">💻</span>${isWide() ? "실시간 자세 측정" : "노트북 촬영"}</button>
+      <button class="sc" type="button" data-go="${isWide() ? "measure,dual" : "measure,mon"}"><span class="e" aria-hidden="true">📷</span>실시간 측정</button>
       <button class="sc" type="button" data-go="exercise"><span class="e" aria-hidden="true">🧘</span>스트레칭<span class="new"></span></button>
       <button class="sc" type="button" data-go="records"><span class="e" aria-hidden="true">📊</span>주간 리포트</button>
     </div>
@@ -998,9 +1001,8 @@ function measureHome() {
     ${isWide() // 노트북(넓은 화면)에서는 실시간 자세 측정만
       ? `<button class="btn primary big" type="button" data-go="dual">💻 &nbsp;실시간 자세 측정</button>
         <span class="muted" style="text-align:center">노트북 웹캠으로 자세를 실시간으로 확인해요 · 기준값 ${S.threshold}° (MY에서 변경)</span>`
-      : `<button class="btn primary big" type="button" data-go="photo">📸 &nbsp;폰으로 측정하기</button>
-        <button class="btn big" type="button" data-go="live">💻 &nbsp;노트북 보면서 촬영</button>
-        <span class="muted" style="text-align:center">혼자 잴 때는 폰을 세워 두고 노트북으로 보면서 찍어요 · 기준값 ${S.threshold}° (MY에서 변경)</span>`}
+      : `<button class="btn primary big" type="button" data-go="mon">📷 &nbsp;실시간 자세 측정</button>
+        <span class="muted" style="text-align:center">휴대폰 전면 카메라로 자세를 실시간으로 확인해요</span>`}
     <div class="card tip">
       <b style="color:var(--ok)">정확하게 재는 법</b>
       <ul><li>카메라를 어깨 높이에서 몸과 직각으로 두어요</li><li>귀 이주와 C7(목 뒤 가장 튀어나온 뼈)에 작은 스티커를 붙여요</li><li>편하게 정면을 보고 선 자세에서 찍어요</li></ul>
