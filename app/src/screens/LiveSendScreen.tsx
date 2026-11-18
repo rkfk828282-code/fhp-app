@@ -14,14 +14,25 @@ import { Button, Text } from "../components/ui";
 import { Icon } from "../components/icons";
 import { colors, fonts } from "../theme";
 
-const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
+const ICE: RTCIceServer[] = [{ urls: "stun:stun.cloudflare.com:3478" }];
+// 다른 네트워크(폰은 LTE·5G, 노트북은 와이파이)에서도 연결되게 서버에서 TURN 중계 정보를 받음. 못 받으면 STUN만
+let iceCache: RTCIceServer[] | null = null;
+async function iceServers(): Promise<RTCIceServer[]> {
+  if (iceCache) return iceCache;
+  try {
+    const r = await fetch(`${SERVER_URL}/turn`);
+    const j = (await r.json()) as { iceServers?: RTCIceServer[] };
+    if (Array.isArray(j.iceServers) && j.iceServers.length) return (iceCache = j.iceServers);
+  } catch {}
+  return ICE;
+}
 type Status = "idle" | "waiting" | "connecting" | "live" | "failed";
 const STATUS_TEXT: Record<Status, string> = {
   idle: "준비",
   waiting: "노트북 기다리는 중",
   connecting: "노트북 연결 중",
   live: "노트북에 송출 중",
-  failed: "영상 연결 실패 · 같은 와이파이인지 확인해 주세요",
+  failed: "영상 연결 실패 · 송출을 껐다 다시 켜 주세요",
 };
 
 export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
@@ -38,6 +49,8 @@ export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"environment" | "user">("environment");
   const facingRef = useRef<"environment" | "user">("environment");
+  const chainRef = useRef<Promise<void>>(Promise.resolve());
+  useEffect(() => { iceServers(); }, []); // 화면을 열 때 미리 받아 둠 (연결이 빨라지게)
   const [flipping, setFlipping] = useState(false);
   const tiltRef = useRef(tilt);
   const activeRef = useRef(false);
@@ -69,7 +82,7 @@ export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
     if (!s) return;
     closePeer();
     setStatus("connecting");
-    const pc = new RTCPeerConnection({ iceServers: ICE });
+    const pc = new RTCPeerConnection({ iceServers: await iceServers() });
     pcRef.current = pc;
     s.getTracks().forEach((t) => pc.addTrack(t, s));
     pc.addEventListener("icecandidate", (e) => {
@@ -99,7 +112,8 @@ export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
     const ws = new WebSocket(url);
     wsRef.current = ws;
     ws.onopen = () => setStatus("waiting");
-    ws.onmessage = (e) => { try { handle(JSON.parse(String(e.data))); } catch {} };
+    // 받은 순서대로 하나씩 처리 (answer 설정 전에 연결 후보가 처리되면 버려져서 연결이 늦어졌음)
+    ws.onmessage = (e) => { let msg: any; try { msg = JSON.parse(String(e.data)); } catch { return; } chainRef.current = chainRef.current.then(() => handle(msg)).catch(() => {}); };
     ws.onclose = (e) => {
       if (wsRef.current !== ws) return;
       if (activeRef.current && e.code !== 4000) setTimeout(() => activeRef.current && connect(c), 2000);
@@ -165,7 +179,7 @@ export default function LiveSendScreen({ onBack }: { onBack: () => void }) {
         </Pressable>
         <View style={{ flex: 1, justifyContent: "center", gap: 14 }}>
           <Text weight="heavy" style={styles.title}>노트북 보면서 촬영</Text>
-          <Text style={styles.help}>노트북에서 {SERVER_URL.replace("https://", "")} 를 열면 6자리 코드가 나와요. 폰과 노트북은 같은 와이파이에 연결해 주세요.</Text>
+          <Text style={styles.help}>노트북에서 {SERVER_URL.replace("https://", "")} 를 열면 6자리 코드가 나와요. 폰은 와이파이나 데이터 어느 쪽이어도 돼요.</Text>
           <TextInput
             style={styles.codeInput} value={code} onChangeText={setCode}
             keyboardType="number-pad" maxLength={6} placeholder="000000" placeholderTextColor="#9aa59f"

@@ -487,7 +487,7 @@ a.btn { text-decoration: none; }
           <div class="code" id="code">------</div>
           <div class="qr" id="qr"></div>
           <div class="url" id="phoneUrl"></div>
-          <span class="small">앱: 측정 → 노트북 보면서 촬영 · 같은 와이파이에서</span>
+          <span class="small">앱: 측정 → 노트북 보면서 촬영 · 와이파이·데이터 상관없이 연결돼요</span>
         </div>
         <div class="placeholder" id="sideOffBox" hidden>
           <strong>휴대폰 카메라 화면을 껐어요</strong>
@@ -1205,7 +1205,7 @@ function liveSend() {
       <button class="back dark" type="button" data-back>‹ 뒤로</button>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
         <h1>노트북 보면서 촬영</h1>
-        <p class="muted" style="margin:0;font-size:15px;line-height:1.6">노트북에서 ${SERVER_URL.replace("https://", "")} 를 열면 6자리 코드가 나와요. 폰과 노트북은 같은 와이파이에 연결해 주세요.</p>
+        <p class="muted" style="margin:0;font-size:15px;line-height:1.6">노트북에서 ${SERVER_URL.replace("https://", "")} 를 열면 6자리 코드가 나와요. 폰은 와이파이나 데이터 어느 쪽이어도 돼요.</p>
         <input class="code-input" id="codeInput" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="노트북 연결 코드 6자리">
         <button class="btn primary big" type="button" id="startBtn">카메라 켜고 연결</button>
         <p class="muted" id="liveMsg" style="margin:0;text-align:center"></p>
@@ -1861,6 +1861,9 @@ function describeCVA(cva, threshold) {
 const THRESHOLD = () => (typeof S !== "undefined" ? S.threshold : 50);
 const LEVEL_TOLERANCE = 2;
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
+// 다른 네트워크에서도 연결되게 서버에서 TURN 중계 정보를 받아 둠 (못 받으면 STUN만)
+let ICE_LIST = ICE;
+const loadIce = () => fetch("/turn").then((r) => r.json()).then((j) => { if (Array.isArray(j.iceServers) && j.iceServers.length) ICE_LIST = j.iceServers; }).catch(() => {});
 const $ = (id) => document.getElementById(id);
 const clock = () => new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
@@ -1883,7 +1886,8 @@ function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws/${code}?role=viewer`);
   ws.onopen = () => setStatus("휴대폰 기다리는 중", false);
-  ws.onmessage = (e) => handle(JSON.parse(e.data));
+  // 메시지를 받은 순서대로 하나씩 처리 (영상 정보 설정이 끝나기 전에 연결 후보가 먼저 처리되면 버려져서 연결이 늦어졌음)
+  ws.onmessage = (e) => { const msg = JSON.parse(e.data); msgChain = msgChain.then(() => handle(msg)).catch(() => {}); };
   ws.onclose = (e) => {
     if (e.code === 4001) return; // 노트북에서 OFF를 눌러 끈 경우
     setStatus("서버 연결 끊김 · 다시 연결 중", false);
@@ -1891,18 +1895,19 @@ function connect() {
   };
 }
 
+let msgChain = Promise.resolve();
 async function handle(msg) {
   switch (msg.type) {
     case "peer-joined": setStatus("휴대폰 연결 중", false); $("sideState").textContent = "연결 중"; break;
     case "peer-left": closePeer(); if (!sideOff) { showSideWaiting(); setStatus("휴대폰 연결 끊김", false); } break;
     case "offer": {
       closePeer();
-      pc = new RTCPeerConnection({ iceServers: ICE });
+      pc = new RTCPeerConnection({ iceServers: ICE_LIST });
       pc.onicecandidate = (e) => e.candidate && send({ type: "ice", candidate: e.candidate });
       pc.ontrack = (e) => { $("sideVideo").srcObject = e.streams[0]; showSideLive(); };
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") setStatus("휴대폰과 연결됨", true);
-        if (pc.connectionState === "failed") setStatus("영상 연결 실패 · 같은 와이파이인지 확인해 주세요", false);
+        if (pc.connectionState === "failed") setStatus("영상 연결 실패 · 휴대폰 화면을 다시 열어 주세요", false);
       };
       await pc.setRemoteDescription(msg.sdp);
       const answer = await pc.createAnswer();
@@ -2131,7 +2136,7 @@ function renderMeasure() {
 let started = false;
 showSideWaiting();
 // 두 카메라 화면을 처음 열 때만 서버에 연결
-window.initDual = () => { if (started) return; started = true; connect(); };
+window.initDual = () => { if (started) return; started = true; loadIce(); connect(); };
 
 /* 측정 완료 → 기록 저장 + 요약 화면 */
 let dualTag = "none";

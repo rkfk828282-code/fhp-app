@@ -2,17 +2,10 @@
 
 사용자가 "TURN 넣자", "기능 스위치 만들자"처럼 꺼내면 아래 내용대로 코드를 짠다.
 
-## 1. 다른 네트워크에서도 연결 (TURN 중계 서버)
-
-- **왜**: 지금은 STUN(`stun:stun.cloudflare.com:3478`)만 써서, 휴대폰이 LTE·5G이거나 학교·회사 와이파이면 영상이 "연결 중"에서 멈출 수 있음. 그래서 안내에 "같은 와이파이에서"라고 적어 둠.
-- **방법**: Cloudflare TURN 서비스를 씀.
-  - 사용자가 Cloudflare 대시보드에서 TURN 키(Key ID + API 토큰)를 만들고, Worker 설정의 비밀값으로 넣음.
-  - Worker에 `/turn` 같은 주소를 만들어, 짧게 쓰는 TURN 접속 정보를 발급해서 돌려줌. 키는 브라우저에 드러나지 않게 함.
-  - 노트북(`server/public/index.html`), 휴대폰 웹(`server/public/phone.html`), 앱(`app/src/screens/LiveSendScreen.tsx`)에서 연결 전에 `/turn`을 불러 `iceServers`에 더함. 실패하면 지금처럼 STUN만 씀.
-  - 연결되면 안내 문구의 "같은 와이파이에서"를 빼거나 바꿈.
-- **빼기**: Worker 설정에서 키를 지우면 자동으로 STUN만 씀. 완전히 빼려면 해당 PR을 되돌림.
-- **비용**: 무료 사용량 안에서 시연은 충분할 것으로 예상. 정확한 한도는 Cloudflare 요금 안내에서 확인.
-- 영상은 중계 서버를 지나갈 뿐 저장하지 않음.
+## 1. 다른 네트워크에서도 연결 (TURN 중계 서버) — 완료
+- 코드: 서버 `/turn` (server/src/index.ts), 노트북·휴대폰 웹·앱이 연결 전에 받아서 씀
+- 켜는 법: Cloudflare 대시보드에서 TURN 키를 만들고 Worker 비밀값 `TURN_KEY_ID`, `TURN_KEY_API_TOKEN`으로 넣기
+- 끄는 법: 두 비밀값을 지우면 자동으로 STUN만 씀
 
 ## 2. 기능 스위치 (한 곳에서 켜고 끄기)
 
