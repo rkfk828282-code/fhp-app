@@ -6,6 +6,7 @@ import { FilesetResolver, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
 import { features, jitter, pickPoints, predict, readout, train } from "/side-model.js";
 import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
 import { bgLoop, grabFrame, setTabStatus } from "/bg-loop.js";
+import { createLiveGauge } from "/live-gauge.js";
 
 const $ = (id) => document.getElementById(id);
 const GOOD = { t: "바른 자세", c: "#0B9B5A" }, BAD = { t: "거북목", c: "#B8432F" }, GRAY = "#5E6A64";
@@ -26,6 +27,8 @@ let model = store.get(K_MODEL, null); // { net, valAcc, trainAcc, n, at }
 let rec = null; // { kind, until }
 const recent = [];
 const stats = { good: 0, bad: 0 };
+const live = createLiveGauge($("sideLiveGauge"), { title: "옆모습으로 본 지금 자세" });
+live.set(null, "판별을 켜면 움직여요");
 const neck = neckTimer($("sideMonAlert"), "귀가 어깨 위에 오도록 턱을 당기고 등을 펴 보세요."); // 5분 넘게 이어지면 알림
 
 async function loadModel() {
@@ -107,13 +110,15 @@ function step(frame, now) {
   const lm = res.landmarks && res.landmarks[0];
   const picked = lm && pickPoints(lm, W, H);
   if (!picked || !picked.ok) {
-    draw(W, H, null); setNums(null); neck.update(false, now);
+    draw(W, H, null); setNums(null); live.set(null, "옆모습에서 귀와 어깨가 보이게 해 주세요"); neck.update(false, now);
     setResult("옆모습에서 귀와 어깨가 보이게 해 주세요", GRAY, "휴대폰을 어깨 높이 옆쪽에 두고 상체가 나오게", "인식 안 됨");
     return;
   }
   const { pts } = picked;
   const r = readout(pts, H);
   setNums(r);
+  // 학습 전에는 귀–어깨 각도로 대략 (40° 이하 = 0, 65° 이상 = 1)
+  if (!model) live.set((r.angle - 40) / 25, `귀–어깨 ${r.angle.toFixed(0)}° · 학습하면 더 정확해져요`);
 
   // 녹화 중: 골격 점을 모음 (화면 높이로 나눠 저장)
   if (rec) {
@@ -134,6 +139,7 @@ function step(frame, now) {
   }
 
   const p = predict(model.net, features(pts, H));
+  live.set(1 - p, `거북목 확률 ${Math.round(p * 100)}%`);
   recent.push(p >= 0.5 ? "bad" : "good"); if (recent.length > 8) recent.shift();
   const nBad = recent.filter((x) => x === "bad").length;
   const label = nBad > recent.length / 2 ? "bad" : "good"; // 최근 장면 다수결 (깜빡임 줄이기)
@@ -191,12 +197,13 @@ async function start() {
   catch { running = false; wanted = false; renderToggle(); $("sideMonHint").textContent = "자세 판별 모델을 불러오지 못했어요. 새로고침 후 다시 켜 주세요."; return; }
   if (!running) return;
   $("sideMonOverlay").removeAttribute("hidden");
+  live.reset();
   lastTick = 0; renderStats(); renderLearn();
   stopLoop = bgLoop(tick, 66, 500); // 안 보일 때는 0.5초마다
 }
 function stop(keepWanted = false) {
   if (!keepWanted) wanted = false;
-  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("side", ""); rec = null; neck.reset();
+  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("side", ""); live.set(null, "판별을 켜면 움직여요"); rec = null; neck.reset();
   $("sideMonOverlay").setAttribute("hidden", ""); $("sideMonOverlay").innerHTML = ""; $("sideMonBadge").hidden = true; $("sideMonAlert").hidden = true;
   renderToggle();
 }

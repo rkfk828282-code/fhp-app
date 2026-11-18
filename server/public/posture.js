@@ -8,6 +8,7 @@
 import { FilesetResolver, FaceLandmarker, PoseLandmarker } from "/mediapipe/vision_bundle.mjs";
 import { askNotify, fmtMin, neckTimer } from "/neck-alert.js";
 import { bgLoop, grabFrame, setTabStatus } from "/bg-loop.js";
+import { createLiveGauge } from "/live-gauge.js";
 
 const $ = (id) => document.getElementById(id);
 const LABEL = {
@@ -32,6 +33,8 @@ let calibrating = null; // { until, samples: [] }
 let th = { ...DEFAULT_TH, ...store.get("neck.monitor.th", {}) };
 const recent = []; // 최근 판별 결과 (깜빡임 줄이기)
 const stats = Object.fromEntries(ORDER.map((k) => [k, 0]));
+const live = createLiveGauge($("monLiveGauge"), { title: "웹캠으로 본 지금 자세" });
+live.set(null, "판별을 켜면 움직여요");
 const neck = neckTimer($("monAlert"), "턱을 살짝 당기고 화면에서 조금 떨어져 앉아 보세요."); // 5분 넘게 이어지면 알림
 
 /* ===== 계산 (논문 식 1~5) ===== */
@@ -129,7 +132,7 @@ function step(frame, now) {
   try { fr = face.detectForVideo(v, now); pr = pose.detectForVideo(v, now); } catch { return; }
   const f = fr.faceLandmarks && fr.faceLandmarks[0], p = pr.landmarks && pr.landmarks[0];
   const ok = f && p && (p[11].visibility ?? 1) > 0.5 && (p[12].visibility ?? 1) > 0.5;
-  if (!ok) { draw(W, H, null); setResult("얼굴과 양쪽 어깨가 보이게 앉아 주세요", "#5E6A64", "", "인식 안 됨"); setNums(null); neck.update(false, now); return; }
+  if (!ok) { draw(W, H, null); setResult("얼굴과 양쪽 어깨가 보이게 앉아 주세요", "#5E6A64", "", "인식 안 됨"); setNums(null); live.set(null, "얼굴과 양쪽 어깨가 보이게 앉아 주세요"); neck.update(false, now); return; }
 
   const P = (l) => ({ x: l.x * W, y: l.y * H });
   const hasIris = f.length >= 478;
@@ -152,9 +155,12 @@ function step(frame, now) {
     }
     return;
   }
-  if (!calib) { draw(W, H, pts, null); setResult("기준 자세를 저장해 주세요", "#5E6A64", "바른 자세로 앉아 [기준 자세 저장]을 눌러요", "기준 자세 필요"); setNums(null); return; }
+  if (!calib) { live.set(null, "기준 자세를 저장하면 움직여요"); draw(W, H, pts, null); setResult("기준 자세를 저장해 주세요", "#5E6A64", "바른 자세로 앉아 [기준 자세 저장]을 눌러요", "기준 자세 필요"); setNums(null); return; }
 
   const r = classify(cur, W / 1920);
+  // 게이지 점수: 판별 기준에 얼마나 가까운지 (기준에 닿으면 빨강 구간)
+  const k = W / 1920, sev = Math.max(r.dS / th.area, r.dYL / (th.ver * k), r.dYR / (th.ver * k), 0);
+  live.set(1 - Math.min(1.5, sev) / 1.5, `얼굴 면적 ${r.dS > 0 ? "+" : ""}${r.dS.toFixed(0)}%`);
   recent.push(r.label); if (recent.length > 8) recent.shift();
   const counts = {}; recent.forEach((x) => { counts[x] = (counts[x] || 0) + 1; });
   const label = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0]; // 최근 0.4초 다수결
@@ -188,12 +194,13 @@ async function start() {
   catch { running = false; renderToggle(); $("monHint").textContent = "자세 판별 모델을 불러오지 못했어요. 새로고침 후 다시 켜 주세요."; return; }
   if (!running) return;
   $("monOverlay").removeAttribute("hidden");
+  live.reset();
   lastTick = 0; renderStats();
   $("monCalibInfo").textContent = calib ? `저장된 기준 자세 사용 중 (${new Date(calib.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })})` : "";
   stopLoop = bgLoop(tick, 50, 500); // 안 보일 때는 0.5초마다
 }
 function stop() {
-  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("front", ""); calibrating = null; neck.reset();
+  running = false; if (stopLoop) { stopLoop(); stopLoop = null; } setTabStatus("front", ""); live.set(null, "판별을 켜면 움직여요"); calibrating = null; neck.reset();
   $("monOverlay").setAttribute("hidden", ""); $("monOverlay").innerHTML = ""; $("monBadge").hidden = true; $("monAlert").hidden = true;
   renderToggle();
 }
