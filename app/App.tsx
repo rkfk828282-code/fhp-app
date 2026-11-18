@@ -1,6 +1,6 @@
 // 앱 시작점: 글꼴 → 저장된 데이터 → 탭 화면 (홈 · 측정 · 기록 · 운동 · MY)
 import { useEffect, useState } from "react";
-import { ActivityIndicator, BackHandler, View } from "react-native";
+import { ActivityIndicator, BackHandler, Linking, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -13,7 +13,7 @@ import CvaInfoScreen from "./src/screens/CvaInfoScreen";
 import MeasureHomeScreen from "./src/screens/MeasureHomeScreen";
 import PhotoMeasureScreen from "./src/screens/PhotoMeasureScreen";
 import LiveSendScreen from "./src/screens/LiveSendScreen";
-import MonitorScreen from "./src/screens/MonitorScreen";
+import { SERVER_URL } from "./src/config";
 import SummaryScreen from "./src/screens/SummaryScreen";
 import RecordsScreen from "./src/screens/RecordsScreen";
 import ExerciseScreen from "./src/screens/ExerciseScreen";
@@ -47,6 +47,8 @@ function Main() {
   const [startTag, setStartTag] = useState<Tag>("none");
 
   const go = (t: TabKey, r: Route = "main") => {
+    // 실시간 자세 측정: 웹 화면(monitor.html)을 휴대폰 브라우저로 엶 — 앱 재빌드 없이 OTA로 바뀜
+    if (t === "measure" && r === "monitor") { Linking.openURL(`${SERVER_URL}/monitor.html?auto=1`); return; }
     if (!(t === "measure" && r === "photo")) setStartTag("none"); // 운동 전/후 측정이 아니면 일반으로
     setTab(t); setRoute(r);
   };
@@ -57,7 +59,7 @@ function Main() {
   };
 
   // 카메라 화면은 탭바 없이 전체 화면
-  const fullScreen = tab === "measure" && (route === "photo" || route === "live" || route === "monitor");
+  const fullScreen = tab === "measure" && (route === "photo" || route === "live");
 
   // 안드로이드 뒤로가기: 세부 화면 → 탭 첫 화면 → 홈
   useEffect(() => {
@@ -77,7 +79,6 @@ function Main() {
         <View style={{ flex: 1 }}>
           {tab === "home" && (route === "cva" ? <CvaInfoScreen /> : <HomeScreen />)}
           {tab === "measure" && route === "main" && <MeasureHomeScreen onMonitor={() => go("measure", "monitor")} />}
-          {tab === "measure" && route === "monitor" && <MonitorScreen onBack={() => go("measure")} />}
           {tab === "measure" && route === "photo" && <PhotoMeasureScreen onBack={() => go("measure")} />}
           {tab === "measure" && route === "live" && <LiveSendScreen onBack={() => go("measure")} />}
           {tab === "measure" && route === "summary" && <SummaryScreen />}
