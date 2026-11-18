@@ -1863,7 +1863,9 @@ const LEVEL_TOLERANCE = 2;
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
 // 다른 네트워크에서도 연결되게 서버에서 TURN 중계 정보를 받아 둠 (못 받으면 STUN만)
 let ICE_LIST = ICE;
-const loadIce = () => fetch("/turn").then((r) => r.json()).then((j) => { if (Array.isArray(j.iceServers) && j.iceServers.length) ICE_LIST = j.iceServers; }).catch(() => {});
+let RELAY = false; // TURN 중계가 켜져 있는지 (/turn 의 relay)
+const loadIce = () => fetch("/turn").then((r) => r.json()).then((j) => { if (Array.isArray(j.iceServers) && j.iceServers.length) ICE_LIST = j.iceServers; RELAY = j.relay === true; }).catch(() => {});
+let watchdog = 0;
 const $ = (id) => document.getElementById(id);
 const clock = () => new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
@@ -1905,10 +1907,17 @@ async function handle(msg) {
       pc = new RTCPeerConnection({ iceServers: ICE_LIST });
       pc.onicecandidate = (e) => e.candidate && send({ type: "ice", candidate: e.candidate });
       pc.ontrack = (e) => { $("sideVideo").srcObject = e.streams[0]; showSideLive(); };
+      // 연결이 어느 단계인지 보여 주기 (멈춘 곳을 알 수 있게)
+      pc.oniceconnectionstatechange = () => { if (pc && pc.iceConnectionState === "checking") { setStatus("영상 경로 찾는 중", false); $("sideState").textContent = "경로 찾는 중"; } };
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "connected") setStatus("휴대폰과 연결됨", true);
-        if (pc.connectionState === "failed") setStatus("영상 연결 실패 · 휴대폰 화면을 다시 열어 주세요", false);
+        if (!pc) return;
+        if (pc.connectionState === "connected") { clearTimeout(watchdog); setStatus(RELAY ? "휴대폰과 연결됨 (중계)" : "휴대폰과 연결됨", true); }
+        if (pc.connectionState === "failed") { clearTimeout(watchdog); setStatus(RELAY ? "영상 연결 실패 · 휴대폰 화면을 다시 열어 주세요" : "영상 연결 실패 · 이 와이파이가 기기끼리 연결을 막는 것 같아요", false); }
       };
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => { // 10초 안에 안 되면 이유 안내
+        if (pc && pc.connectionState !== "connected") setStatus(RELAY ? "연결이 오래 걸려요 · 휴대폰 화면을 새로고침해 보세요" : "연결이 안 돼요 · 학교·회사 와이파이는 기기끼리 연결을 막기도 해요 (TURN 중계를 켜면 돼요)", false);
+      }, 10000);
       await pc.setRemoteDescription(msg.sdp);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);

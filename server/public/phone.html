@@ -57,8 +57,8 @@ header h1 { color: #fff; font-size: 18px; }
 
 <script>
 const ICE = [{ urls: "stun:stun.cloudflare.com:3478" }];
-let ICE_LIST = ICE;
-fetch("/turn").then((r) => r.json()).then((j) => { if (Array.isArray(j.iceServers) && j.iceServers.length) ICE_LIST = j.iceServers; }).catch(() => {});
+let ICE_LIST = ICE, RELAY = false, watchdog = 0;
+fetch("/turn").then((r) => r.json()).then((j) => { if (Array.isArray(j.iceServers) && j.iceServers.length) ICE_LIST = j.iceServers; RELAY = j.relay === true; }).catch(() => {});
 const LEVEL_TOLERANCE = 2;
 const $ = (id) => document.getElementById(id);
 $("codeInput").value = (location.hash.slice(1).match(/\d{6}/) || [""])[0];
@@ -168,11 +168,14 @@ async function startPeer() {
   stream.getVideoTracks().forEach(t => { t.contentHint = "detail"; });
   stream.getTracks().forEach(t => pc.addTrack(t, stream));
   pc.onicecandidate = (e) => e.candidate && send({ type: "ice", candidate: e.candidate });
+  pc.oniceconnectionstatechange = () => { if (pc && pc.iceConnectionState === "checking") setStatus("영상 경로 찾는 중", false); };
   pc.onconnectionstatechange = () => {
     if (!pc) return;
-    if (pc.connectionState === "connected") { setStatus("노트북에 송출 중", true); send({ type: "facing", facing }); }
-    if (pc.connectionState === "failed") setStatus("영상 연결 실패", false);
+    if (pc.connectionState === "connected") { clearTimeout(watchdog); setStatus("노트북에 송출 중", true); send({ type: "facing", facing }); }
+    if (pc.connectionState === "failed") { clearTimeout(watchdog); setStatus(RELAY ? "영상 연결 실패 · 새로고침해 주세요" : "영상 연결 실패 · 이 와이파이가 기기끼리 연결을 막는 것 같아요", false); }
   };
+  clearTimeout(watchdog);
+  watchdog = setTimeout(() => { if (pc && pc.connectionState !== "connected") setStatus(RELAY ? "연결이 오래 걸려요 · 새로고침해 보세요" : "연결이 안 돼요 · 와이파이가 기기끼리 연결을 막는 것 같아요", false); }, 10000);
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   send({ type: "offer", sdp: pc.localDescription });
